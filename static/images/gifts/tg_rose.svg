@@ -1,35 +1,88 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
   <defs>
     <radialGradient id="bg_glow" cx="50%" cy="40%" r="65%">
-      <stop offset="0%" stop-color="#e11d48" stop-opacity="0.55"/>
-      <stop offset="50%" stop-color="#4c0519" stop-opacity="0.3"/>
+      <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.55"/>
+      <stop offset="50%" stop-color="#881337" stop-opacity="0.3"/>
       <stop offset="100%" stop-color="#0a0d18" stop-opacity="1"/>
     </radialGradient>
     <linearGradient id="border_grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#e11d48" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="#4c0519" stop-opacity="0.3"/>
+      <stop offset="0%" stop-color="#fb7185" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#be123c" stop-opacity="0.3"/>
     </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#e11d48" flood-opacity="0.6"/>
+    <!-- Rose Petal Gradient -->
+    <radialGradient id="petalRed" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#ff4d6d"/>
+      <stop offset="50%" stop-color="#c9184a"/>
+      <stop offset="100%" stop-color="#590d22"/>
+    </radialGradient>
+    <!-- Glass Dome Gradient -->
+    <linearGradient id="glassDome" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.45)"/>
+      <stop offset="30%" stop-color="rgba(224,242,254,0.15)"/>
+      <stop offset="70%" stop-color="rgba(147,197,253,0.08)"/>
+      <stop offset="100%" stop-color="rgba(255,255,255,0.3)"/>
+    </linearGradient>
+    <!-- Mahogany Base -->
+    <linearGradient id="woodBase" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#451a03"/>
+      <stop offset="50%" stop-color="#78350f"/>
+      <stop offset="100%" stop-color="#270e02"/>
+    </linearGradient>
+    <filter id="roseGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   </defs>
-  
-  <!-- Base Squircle -->
+
   <rect x="8" y="8" width="240" height="240" rx="52" fill="url(#bg_glow)" stroke="url(#border_grad)" stroke-width="3"/>
-  
-  <!-- Telegram Star watermark -->
-  <text x="210" y="44" font-size="20" opacity="0.3" text-anchor="middle" fill="#ffb703">⭐️</text>
-  
-  <!-- Rarity Tag -->
-  <rect x="22" y="24" width="76" height="20" rx="6" fill="rgba(0,0,0,0.5)" stroke="#c084fc" stroke-width="1"/>
-  <text x="60" y="38" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="900" fill="#c084fc" text-anchor="middle" letter-spacing="0.5">EPIC</text>
-  
-  <!-- 3D Gift Artwork -->
-  <g filter="url(#shadow)">
-    <text x="128" y="160" font-size="105" text-anchor="middle" dominant-baseline="central">🌹</text>
+  <text x="210" y="44" font-size="20" opacity="0.4" text-anchor="middle" fill="#ffb703">⭐️</text>
+
+  <rect x="22" y="24" width="76" height="20" rx="6" fill="rgba(0,0,0,0.5)" stroke="#fb7185" stroke-width="1"/>
+  <text x="60" y="38" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="900" fill="#fb7185" text-anchor="middle" letter-spacing="0.5">EPIC</text>
+
+  <!-- 3D Official Telegram Eternal Rose in Cloche -->
+  <g transform="translate(128, 142)" filter="url(#roseGlow)">
+    <!-- Base Mahogany Pedestal -->
+    <ellipse cx="0" cy="46" rx="46" ry="12" fill="url(#woodBase)" stroke="#92400e" stroke-width="2"/>
+    <ellipse cx="0" cy="43" rx="40" ry="9" fill="#92400e"/>
+
+    <!-- Green Stem and Leaves -->
+    <path d="M0,40 C-2,15 4,-5 0,-15" fill="none" stroke="#15803d" stroke-width="4.5" stroke-linecap="round"/>
+    <!-- Left Leaf -->
+    <path d="M0,15 C-18,12 -22,2 -10,0 C-4,8 0,15 0,15 Z" fill="#16a34a" stroke="#14532d" stroke-width="1"/>
+    <!-- Right Leaf -->
+    <path d="M0,-2 C18,-6 22,-14 10,-16 C4,-8 0,-2 0,-2 Z" fill="#22c55e" stroke="#14532d" stroke-width="1"/>
+
+    <!-- Fallen Petal on the Floor -->
+    <ellipse cx="14" cy="40" rx="8" ry="4" transform="rotate(-15, 14, 40)" fill="url(#petalRed)"/>
+
+    <!-- Blooming Red Rose Flower Head -->
+    <g transform="translate(0, -22)">
+      <!-- Outer Petals -->
+      <path d="M-18,-8 C-24,-24 0,-30 0,-12 C0,-30 24,-24 18,-8 C20,10 -20,10 -18,-8 Z" fill="url(#petalRed)"/>
+      <!-- Inner Swirling Petals -->
+      <path d="M-10,-12 C-14,-22 0,-24 0,-14 C0,-24 14,-22 10,-12 C12,0 -12,0 -10,-12 Z" fill="#ff4d6d"/>
+      <circle cx="0" cy="-14" r="6" fill="#800f2f"/>
+      <circle cx="0" cy="-14" r="3" fill="#ff758f"/>
+    </g>
+
+    <!-- Glass Cloche Bell Dome -->
+    <path d="M-34,42 L-34,-10 C-34,-50 34,-50 34,-10 L34,42 Z" fill="url(#glassDome)" stroke="rgba(255,255,255,0.6)" stroke-width="2"/>
+    <!-- Dome Top Handle Ball -->
+    <circle cx="0" cy="-52" r="7" fill="rgba(255,255,255,0.7)" stroke="#ffffff" stroke-width="1.5"/>
+
+    <!-- Glass Highlight Reflection Streak -->
+    <path d="M-26,38 L-26,-8 C-26,-40 -10,-44 -4,-45" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.75"/>
+
+    <!-- Golden Magic Sparkles Floating -->
+    <circle cx="-14" cy="-2" r="2" fill="#fbbf24"/>
+    <circle cx="16" cy="18" r="1.5" fill="#fde047"/>
+    <circle cx="12" cy="-28" r="2" fill="#fbbf24"/>
   </g>
-  
-  <!-- Bottom Telegram NFT Label -->
+
   <rect x="78" y="214" width="100" height="20" rx="8" fill="rgba(0,0,0,0.6)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
   <text x="128" y="228" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="800" fill="#f8fafc" text-anchor="middle" letter-spacing="1">TELEGRAM NFT</text>
 </svg>

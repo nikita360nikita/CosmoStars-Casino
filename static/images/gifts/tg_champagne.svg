@@ -1,35 +1,74 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
   <defs>
     <radialGradient id="bg_glow" cx="50%" cy="40%" r="65%">
-      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.55"/>
-      <stop offset="50%" stop-color="#713f12" stop-opacity="0.3"/>
+      <stop offset="0%" stop-color="#15803d" stop-opacity="0.55"/>
+      <stop offset="50%" stop-color="#052e16" stop-opacity="0.3"/>
       <stop offset="100%" stop-color="#0a0d18" stop-opacity="1"/>
     </radialGradient>
     <linearGradient id="border_grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="#713f12" stop-opacity="0.3"/>
+      <stop offset="0%" stop-color="#22c55e" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#14532d" stop-opacity="0.3"/>
     </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#f59e0b" flood-opacity="0.6"/>
+    <!-- Bottle Glass Gradient -->
+    <linearGradient id="bottleGlass" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#14532d"/>
+      <stop offset="35%" stop-color="#166534"/>
+      <stop offset="70%" stop-color="#15803d"/>
+      <stop offset="100%" stop-color="#052e16"/>
+    </linearGradient>
+    <!-- Gold Foil Neck -->
+    <linearGradient id="goldFoil" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="40%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <filter id="champagneGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   </defs>
-  
-  <!-- Base Squircle -->
+
   <rect x="8" y="8" width="240" height="240" rx="52" fill="url(#bg_glow)" stroke="url(#border_grad)" stroke-width="3"/>
-  
-  <!-- Telegram Star watermark -->
-  <text x="210" y="44" font-size="20" opacity="0.3" text-anchor="middle" fill="#ffb703">⭐️</text>
-  
-  <!-- Rarity Tag -->
-  <rect x="22" y="24" width="76" height="20" rx="6" fill="rgba(0,0,0,0.5)" stroke="#c084fc" stroke-width="1"/>
-  <text x="60" y="38" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="900" fill="#c084fc" text-anchor="middle" letter-spacing="0.5">EPIC</text>
-  
-  <!-- 3D Gift Artwork -->
-  <g filter="url(#shadow)">
-    <text x="128" y="160" font-size="105" text-anchor="middle" dominant-baseline="central">🍾</text>
+  <text x="210" y="44" font-size="20" opacity="0.4" text-anchor="middle" fill="#ffb703">⭐️</text>
+
+  <rect x="22" y="24" width="76" height="20" rx="6" fill="rgba(0,0,0,0.5)" stroke="#22c55e" stroke-width="1"/>
+  <text x="60" y="38" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="900" fill="#22c55e" text-anchor="middle" letter-spacing="0.5">EPIC</text>
+
+  <!-- 3D Official Telegram Champagne Bottle -->
+  <g transform="translate(128, 142) rotate(20)" filter="url(#champagneGlow)">
+    <!-- Base Shadow -->
+    <ellipse cx="0" cy="54" rx="28" ry="8" fill="#022c22" opacity="0.6"/>
+
+    <!-- Bottle Body -->
+    <path d="M-22,50 L-22,0 C-22,-18 -8,-32 -8,-45 L8,-45 C8,-32 22,-18 22,0 L22,50 Z" fill="url(#bottleGlass)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5"/>
+    <ellipse cx="0" cy="50" rx="22" ry="6" fill="#052e16"/>
+
+    <!-- Gold Foil Neck Wrap -->
+    <path d="M-9,-32 L-7,-48 L7,-48 L9,-32 Z" fill="url(#goldFoil)"/>
+
+    <!-- Popping Flying Cork -->
+    <polygon points="-8,-60 -9,-72 9,-72 8,-60" fill="#d97706" stroke="#78350f" stroke-width="1"/>
+
+    <!-- Sparkling Golden Bubbles Bursting Out -->
+    <circle cx="-6" cy="-56" r="3" fill="#fef08a"/>
+    <circle cx="8" cy="-54" r="4" fill="#fbbf24"/>
+    <circle cx="-14" cy="-74" r="5" fill="#fef08a"/>
+    <circle cx="16" cy="-78" r="4.5" fill="#ffffff"/>
+    <circle cx="2" cy="-84" r="3" fill="#fef08a"/>
+    <circle cx="-8" cy="-92" r="2.5" fill="#ffffff"/>
+
+    <!-- Luxury Label on Bottle -->
+    <rect x="-18" y="6" width="36" height="28" rx="4" fill="#fef3c7" stroke="#b45309" stroke-width="1"/>
+    <!-- Gold Star on Label -->
+    <polygon points="0,14 2,19 7,19 3,22 5,27 0,24 -5,27 -3,22 -7,19 -2,19" fill="#f59e0b"/>
+
+    <!-- Glass Specular Highlight Streak -->
+    <path d="M-14,46 L-14,0 C-14,-14 -4,-28 -4,-42" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.6"/>
   </g>
-  
-  <!-- Bottom Telegram NFT Label -->
+
   <rect x="78" y="214" width="100" height="20" rx="8" fill="rgba(0,0,0,0.6)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
   <text x="128" y="228" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="800" fill="#f8fafc" text-anchor="middle" letter-spacing="1">TELEGRAM NFT</text>
 </svg>

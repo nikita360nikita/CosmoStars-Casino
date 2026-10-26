@@ -13,8 +13,14 @@ TELEGRAM_PROXY = os.getenv("TELEGRAM_PROXY", "").strip() or None
 WEB_HOST = os.getenv("WEB_HOST", "0.0.0.0")
 WEB_PORT = int(os.getenv("PORT", os.getenv("WEB_PORT", "8080")))
 
-# Base URL for the WebApp (e.g. https://yourdomain.com or ngrok URL)
-WEB_APP_URL = os.getenv("WEB_APP_URL", f"http://localhost:{WEB_PORT}")
+# Base URL for the WebApp (checks RENDER_EXTERNAL_URL first on Render)
+render_external = os.getenv("RENDER_EXTERNAL_URL", "").strip()
+WEB_APP_URL = os.getenv("WEB_APP_URL", "").strip() or render_external
+if not WEB_APP_URL or "localhost" in WEB_APP_URL:
+    if render_external:
+        WEB_APP_URL = render_external
+    else:
+        WEB_APP_URL = "https://t.me/Cosm0Casino_bot/app"
 
 # Database path
 DB_PATH = BASE_DIR / "casino.db"

@@ -1,35 +1,81 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
   <defs>
     <radialGradient id="bg_glow" cx="50%" cy="40%" r="65%">
-      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.55"/>
-      <stop offset="50%" stop-color="#78350f" stop-opacity="0.3"/>
+      <stop offset="0%" stop-color="#ec4899" stop-opacity="0.55"/>
+      <stop offset="50%" stop-color="#831843" stop-opacity="0.3"/>
       <stop offset="100%" stop-color="#0a0d18" stop-opacity="1"/>
     </radialGradient>
     <linearGradient id="border_grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="#78350f" stop-opacity="0.3"/>
+      <stop offset="0%" stop-color="#f472b6" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#9d174d" stop-opacity="0.3"/>
     </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#fbbf24" flood-opacity="0.6"/>
+    <linearGradient id="creamGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="60%" stop-color="#fce7f3"/>
+      <stop offset="100%" stop-color="#fbcfe8"/>
+    </linearGradient>
+    <linearGradient id="spongeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f472b6"/>
+      <stop offset="50%" stop-color="#db2777"/>
+      <stop offset="100%" stop-color="#9d174d"/>
+    </linearGradient>
+    <linearGradient id="candleFlame" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="40%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#ef4444"/>
+    </linearGradient>
+    <filter id="cakeGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   </defs>
-  
-  <!-- Base Squircle -->
+
   <rect x="8" y="8" width="240" height="240" rx="52" fill="url(#bg_glow)" stroke="url(#border_grad)" stroke-width="3"/>
-  
-  <!-- Telegram Star watermark -->
-  <text x="210" y="44" font-size="20" opacity="0.3" text-anchor="middle" fill="#ffb703">⭐️</text>
-  
-  <!-- Rarity Tag -->
-  <rect x="22" y="24" width="76" height="20" rx="6" fill="rgba(0,0,0,0.5)" stroke="#94a3b8" stroke-width="1"/>
-  <text x="60" y="38" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="900" fill="#94a3b8" text-anchor="middle" letter-spacing="0.5">COMMON</text>
-  
-  <!-- 3D Gift Artwork -->
-  <g filter="url(#shadow)">
-    <text x="128" y="160" font-size="105" text-anchor="middle" dominant-baseline="central">🎂</text>
+  <text x="210" y="44" font-size="20" opacity="0.4" text-anchor="middle" fill="#ffb703">⭐️</text>
+
+  <rect x="22" y="24" width="76" height="20" rx="6" fill="rgba(0,0,0,0.5)" stroke="#f472b6" stroke-width="1"/>
+  <text x="60" y="38" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="900" fill="#f472b6" text-anchor="middle" letter-spacing="0.5">COMMON</text>
+
+  <!-- 3D Official Delicious Cake -->
+  <g transform="translate(128, 142)" filter="url(#cakeGlow)">
+    <!-- Plate / Pedestal -->
+    <ellipse cx="0" cy="50" rx="60" ry="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+    <ellipse cx="0" cy="48" rx="56" ry="11" fill="#f8fafc"/>
+
+    <!-- Bottom Cake Layer Body -->
+    <path d="M-48,15 L-48,40 C-48,50 48,50 48,40 L48,15 Z" fill="url(#spongeGrad)"/>
+    <ellipse cx="0" cy="15" rx="48" ry="14" fill="url(#creamGrad)"/>
+
+    <!-- Cream Drips on Bottom Layer -->
+    <path d="M-48,15 C-40,26 -35,26 -28,18 C-20,28 -14,28 -6,17 C2,27 10,27 18,18 C26,26 34,26 42,16 L48,15 L-48,15 Z" fill="#ffffff"/>
+
+    <!-- Top Cake Layer Body -->
+    <path d="M-32,-12 L-32,10 C-32,18 32,18 32,10 L32,-12 Z" fill="url(#spongeGrad)"/>
+    <ellipse cx="0" cy="-12" rx="32" ry="10" fill="url(#creamGrad)"/>
+
+    <!-- Cream Drips on Top Layer -->
+    <path d="M-32,-12 C-26,-4 -20,-4 -14,-10 C-8,-3 0,-3 6,-10 C14,-4 22,-4 32,-12 Z" fill="#ffffff"/>
+
+    <!-- 3 Burning Candles -->
+    <!-- Center Candle -->
+    <rect x="-3" y="-36" width="6" height="24" rx="2" fill="#38bdf8"/>
+    <path d="M0,-46 C-3,-41 -3,-38 0,-36 C3,-38 3,-41 0,-46 Z" fill="url(#candleFlame)"/>
+    <!-- Left Candle -->
+    <rect x="-18" y="-33" width="5" height="21" rx="2" fill="#fbbf24"/>
+    <path d="M-15.5,-43 C-18,-38 -18,-35 -15.5,-33 C-13,-35 -13,-38 -15.5,-43 Z" fill="url(#candleFlame)"/>
+    <!-- Right Candle -->
+    <rect x="13" y="-33" width="5" height="21" rx="2" fill="#a855f7"/>
+    <path d="M15.5,-43 C13,-38 13,-35 15.5,-33 C18,-35 18,-38 15.5,-43 Z" fill="url(#candleFlame)"/>
+
+    <!-- Strawberries & Star Sprinkles -->
+    <circle cx="-16" cy="14" r="5" fill="#e11d48"/>
+    <circle cx="16" cy="14" r="5" fill="#e11d48"/>
+    <polygon points="0,10 1.5,14 6,14 2,17 3.5,21 0,18 -3.5,21 -2,17 -6,14 -1.5,14" fill="#fbbf24"/>
   </g>
-  
-  <!-- Bottom Telegram NFT Label -->
+
   <rect x="78" y="214" width="100" height="20" rx="8" fill="rgba(0,0,0,0.6)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
   <text x="128" y="228" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="800" fill="#f8fafc" text-anchor="middle" letter-spacing="1">TELEGRAM NFT</text>
 </svg>

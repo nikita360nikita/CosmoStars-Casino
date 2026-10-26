@@ -1,35 +1,76 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
   <defs>
     <radialGradient id="bg_glow" cx="50%" cy="40%" r="65%">
-      <stop offset="0%" stop-color="#f472b6" stop-opacity="0.55"/>
-      <stop offset="50%" stop-color="#701a75" stop-opacity="0.3"/>
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.55"/>
+      <stop offset="50%" stop-color="#0369a1" stop-opacity="0.3"/>
       <stop offset="100%" stop-color="#0a0d18" stop-opacity="1"/>
     </radialGradient>
     <linearGradient id="border_grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#f472b6" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="#701a75" stop-opacity="0.3"/>
+      <stop offset="0%" stop-color="#7dd3fc" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#0284c7" stop-opacity="0.3"/>
     </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#f472b6" flood-opacity="0.6"/>
+    <!-- Platinum Ring Gradient -->
+    <linearGradient id="platinumGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="35%" stop-color="#e2e8f0"/>
+      <stop offset="70%" stop-color="#94a3b8"/>
+      <stop offset="100%" stop-color="#64748b"/>
+    </linearGradient>
+    <!-- Diamond Gem Facets -->
+    <linearGradient id="ringDiamond" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#bae6fd"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+    <!-- Velvet Box -->
+    <linearGradient id="boxVelvet" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <filter id="ringGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   </defs>
-  
-  <!-- Base Squircle -->
+
   <rect x="8" y="8" width="240" height="240" rx="52" fill="url(#bg_glow)" stroke="url(#border_grad)" stroke-width="3"/>
-  
-  <!-- Telegram Star watermark -->
-  <text x="210" y="44" font-size="20" opacity="0.3" text-anchor="middle" fill="#ffb703">⭐️</text>
-  
-  <!-- Rarity Tag -->
-  <rect x="22" y="24" width="76" height="20" rx="6" fill="rgba(0,0,0,0.5)" stroke="#facc15" stroke-width="1"/>
-  <text x="60" y="38" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="900" fill="#facc15" text-anchor="middle" letter-spacing="0.5">LEGENDARY</text>
-  
-  <!-- 3D Gift Artwork -->
-  <g filter="url(#shadow)">
-    <text x="128" y="160" font-size="105" text-anchor="middle" dominant-baseline="central">💍</text>
+  <text x="210" y="44" font-size="20" opacity="0.4" text-anchor="middle" fill="#ffb703">⭐️</text>
+
+  <rect x="22" y="24" width="86" height="20" rx="6" fill="rgba(0,0,0,0.5)" stroke="#38bdf8" stroke-width="1"/>
+  <text x="65" y="38" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="900" fill="#38bdf8" text-anchor="middle" letter-spacing="0.5">LEGENDARY</text>
+
+  <!-- 3D Official Telegram Diamond Ring in Luxury Box -->
+  <g transform="translate(128, 142)" filter="url(#ringGlow)">
+    <!-- Velvet Ring Box Base -->
+    <rect x="-46" y="15" width="92" height="38" rx="10" fill="url(#boxVelvet)" stroke="#4338ca" stroke-width="2"/>
+    <ellipse cx="0" cy="15" rx="46" ry="12" fill="#312e81"/>
+    <!-- Box Cushion Inset -->
+    <ellipse cx="0" cy="15" rx="36" ry="8" fill="#1e1b4b"/>
+
+    <!-- Platinum Ring Band -->
+    <ellipse cx="0" cy="8" rx="28" ry="16" fill="none" stroke="url(#platinumGrad)" stroke-width="8"/>
+    <ellipse cx="0" cy="8" rx="28" ry="16" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.75"/>
+
+    <!-- Prong Mount Setting -->
+    <polygon points="-12,-8 12,-8 8,4 -8,4" fill="url(#platinumGrad)"/>
+
+    <!-- Huge Sparkling Solitaire Diamond -->
+    <g transform="translate(0, -22)">
+      <!-- Table (Top) -->
+      <polygon points="-16,-14 16,-14 24,0 -24,0" fill="#ffffff" stroke="#38bdf8" stroke-width="1"/>
+      <!-- Lower Body V -->
+      <polygon points="-24,0 24,0 0,22" fill="url(#ringDiamond)" stroke="#0284c7" stroke-width="1"/>
+      <!-- Center Facet -->
+      <polygon points="-10,0 10,0 0,22" fill="#ffffff" opacity="0.8"/>
+      <!-- Sparkles -->
+      <polygon points="-18,-18 -16,-13 -11,-11 -16,-9 -18,-4 -20,-9 -25,-11 -20,-13" fill="#ffffff"/>
+      <polygon points="20,-2 22,2 26,4 22,6 20,10 18,6 14,4 18,2" fill="#ffffff"/>
+    </g>
   </g>
-  
-  <!-- Bottom Telegram NFT Label -->
+
   <rect x="78" y="214" width="100" height="20" rx="8" fill="rgba(0,0,0,0.6)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
   <text x="128" y="228" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="800" fill="#f8fafc" text-anchor="middle" letter-spacing="1">TELEGRAM NFT</text>
 </svg>

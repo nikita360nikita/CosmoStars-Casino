@@ -211,7 +211,7 @@ TELEGRAM_GIFTS = {
 CASES_CATALOG = {
     "starter": {
         "id": "starter",
-        "name": "🎁 Starter Box",
+        "name": "Starter Box",
         "subtitle": "Telegram Gifts Starter",
         "description": "Доступный кейс с реальными подарками Telegram для быстрого старта",
         "price": 25,
@@ -228,7 +228,7 @@ CASES_CATALOG = {
     },
     "classic": {
         "id": "classic",
-        "name": "🧸 Classic Box",
+        "name": "Classic Box",
         "subtitle": "Popular Gifts",
         "description": "Самые популярные подарки Telegram — шанс на Вечную Розу",
         "price": 75,
@@ -246,7 +246,7 @@ CASES_CATALOG = {
     },
     "cosmic": {
         "id": "cosmic",
-        "name": "🚀 Cosmic Voyage",
+        "name": "Cosmic Voyage",
         "subtitle": "Space & Speed",
         "description": "Космический кейс с ракетами и сапфировыми звездами",
         "price": 150,
@@ -264,7 +264,7 @@ CASES_CATALOG = {
     },
     "cyber": {
         "id": "cyber",
-        "name": "⚡ Cyber Star Box",
+        "name": "Cyber Star Box",
         "subtitle": "Quantum & Neon",
         "description": "Футуристический кибер-кейс с квантовыми кубами и ракетами",
         "price": 200,
@@ -282,7 +282,7 @@ CASES_CATALOG = {
     },
     "vip": {
         "id": "vip",
-        "name": "👑 VIP Elite",
+        "name": "VIP Elite",
         "subtitle": "High-Tier Gifts",
         "description": "Премиальные подарки для хайроллеров: Шампанское, Корона и Алмаз",
         "price": 250,
@@ -301,7 +301,7 @@ CASES_CATALOG = {
     },
     "alchemist": {
         "id": "alchemist",
-        "name": "🧪 Alchemist Vault",
+        "name": "Alchemist Vault",
         "subtitle": "Magic & Elixirs",
         "description": "Мистический тайник с Магическим Зельем и Вечной Розой",
         "price": 350,
@@ -319,7 +319,7 @@ CASES_CATALOG = {
     },
     "durov": {
         "id": "durov",
-        "name": "🧢 Durov's Vault",
+        "name": "Durov's Vault",
         "subtitle": "Pavel's Secret Stash",
         "description": "Секретный сейф Павла Дурова: шанс выбить легендарную Кепку Дурова!",
         "price": 500,
@@ -338,7 +338,7 @@ CASES_CATALOG = {
     },
     "sprout": {
         "id": "sprout",
-        "name": "🌱 Golden Sprout",
+        "name": "Golden Sprout",
         "subtitle": "TON Ecosystem Growth",
         "description": "Благородный кейс золотого ростка экосистемы TON Stars",
         "price": 750,
@@ -356,7 +356,7 @@ CASES_CATALOG = {
     },
     "nft": {
         "id": "nft",
-        "name": "💎 Limited NFT",
+        "name": "Limited NFT",
         "subtitle": "Exclusive & Collectible",
         "description": "Эксклюзивные лимитированные сокровища: Царевна-Лягушка, Бриллиант и Кепка",
         "price": 1000,
@@ -375,7 +375,7 @@ CASES_CATALOG = {
     },
     "highroller": {
         "id": "highroller",
-        "name": "🍾 Highroller Club",
+        "name": "Highroller Club",
         "subtitle": "Luxury Only",
         "description": "Клуб высоких ставок: Кольцо с Бриллиантом, Корона и Шампанское",
         "price": 1500,
@@ -393,7 +393,7 @@ CASES_CATALOG = {
     },
     "royal": {
         "id": "royal",
-        "name": "🏆 Royal Treasury",
+        "name": "Royal Treasury",
         "subtitle": "Crown & Diamond Vault",
         "description": "Королевская сокровищница: шанс на Царевну-Лягушку и Кубок Чемпиона",
         "price": 2500,
@@ -411,7 +411,7 @@ CASES_CATALOG = {
     },
     "mythic": {
         "id": "mythic",
-        "name": "👑 Immortal Jackpot",
+        "name": "Immortal Jackpot",
         "subtitle": "Gods of Telegram Stars",
         "description": "Ультимативный кейс владык Telegram Stars: наивысший шанс на Кубок Чемпиона и Кепку Дурова",
         "price": 5000,

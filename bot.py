@@ -81,18 +81,21 @@ def get_policy_read_keyboard() -> InlineKeyboardMarkup:
 
 def get_main_keyboard(webapp_url: str) -> InlineKeyboardMarkup:
     is_https = bool(webapp_url and webapp_url.strip().startswith("https://"))
-    top_button = (
-        InlineKeyboardButton(
+    if is_https:
+        top_button = InlineKeyboardButton(
             text="🎮 ИГРАТЬ",
-            web_app=WebAppInfo(url=webapp_url)
+            web_app=WebAppInfo(url=webapp_url.strip())
         )
-        if is_https
-        else InlineKeyboardButton(
+    elif webapp_url and (webapp_url.startswith("https://") or "t.me/" in webapp_url):
+        top_button = InlineKeyboardButton(
             text="🎮 ИГРАТЬ",
-            url=webapp_url if (webapp_url and webapp_url.startswith("http")) else None,
-            callback_data="open_app_info" if not (webapp_url and webapp_url.startswith("http")) else None
+            url=webapp_url.strip()
         )
-    )
+    else:
+        top_button = InlineKeyboardButton(
+            text="🎮 ИГРАТЬ",
+            callback_data="open_app_info"
+        )
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [top_button],
@@ -132,7 +135,14 @@ def get_deposit_keyboard() -> InlineKeyboardMarkup:
         ]
     )
 
-async def send_main_menu(message_or_callback, user, db_user, is_edit=False):
+async def send_main_menu(message_or_callback, user, db_user=None, is_edit=False):
+    if not db_user:
+        db_user = await get_or_create_user(
+            telegram_id=user.id,
+            username=user.username or "",
+            first_name=user.first_name or "Игрок"
+        )
+    balance = db_user.get("balance", 0) if isinstance(db_user, dict) else (db_user["balance"] if db_user else 0)
     welcome_text = (
         f"👋 Привет, <b>{user.first_name}</b>!\n\n"
         f"Добро пожаловать в <b>CosmoStars Casino</b> — лучшее Telegram Mini App казино на звёзды! ⭐️\n\n"
@@ -143,18 +153,23 @@ async def send_main_menu(message_or_callback, user, db_user, is_edit=False):
         f"• ⛈️ <b>Шторм (Storm):</b> поднимайся по грозовой башне до x15.00!\n"
         f"• 🚀 <b>Ракетка (Crash):</b> успей забрать выигрыш до взрыва ракеты!\n"
         f"• 🪙 <b>Монетка (Coinflip):</b> Орёл или Решка со множителем x1.80!\n\n"
-        f"⭐️ <b>Твой баланс:</b> <code>{db_user['balance']}</code> ⭐️\n\n"
-        f"<i>Нажми кнопку ниже, чтобы запустить приложение:</i>"
+        f"⭐️ <b>Твой баланс:</b> <code>{balance}</code> ⭐️\n\n"
+        f"<i>Нажми кнопку ниже, чтобы запустить игру:</i>"
     )
 
     markup = get_main_keyboard(WEB_APP_URL)
     if is_edit and isinstance(message_or_callback, types.CallbackQuery):
-        await message_or_callback.message.edit_text(
-            text=welcome_text,
-            parse_mode="HTML",
-            reply_markup=markup
-        )
-    elif isinstance(message_or_callback, types.CallbackQuery):
+        try:
+            await message_or_callback.message.edit_text(
+                text=welcome_text,
+                parse_mode="HTML",
+                reply_markup=markup
+            )
+            return
+        except Exception as e:
+            logger.warning("edit_text failed in send_main_menu, sending as new message: %s", e)
+
+    if isinstance(message_or_callback, types.CallbackQuery):
         await message_or_callback.message.answer(
             text=welcome_text,
             parse_mode="HTML",
@@ -224,7 +239,11 @@ async def handle_check_sub(callback: types.CallbackQuery):
         return
 
     await callback.answer("✅ Подписка подтверждена!")
-    db_user = await get_user(user.id)
+    db_user = await get_or_create_user(
+        telegram_id=user.id,
+        username=user.username or "",
+        first_name=user.first_name or "Игрок"
+    )
     terms_accepted = await get_user_terms_accepted(user.id)
 
     if not terms_accepted:
@@ -270,8 +289,20 @@ async def handle_back_policy(callback: types.CallbackQuery):
 @dp.callback_query(F.data == "accept_terms")
 async def handle_accept_terms(callback: types.CallbackQuery):
     user = callback.from_user
-    await accept_user_terms(user.id)
-    await callback.answer("✅ Условия соглашения успешно приняты!")
+    logger.info("User %s accepted terms", user.id)
+    try:
+        db_user = await get_or_create_user(
+            telegram_id=user.id,
+            username=user.username or "",
+            first_name=user.first_name or "Игрок"
+        )
+        await accept_user_terms(user.id)
+    except Exception as e:
+        logger.exception("Error saving accepted terms: %s", e)
+        db_user = {"balance": 0}
+
+    await callback.answer("✅ Условия соглашения приняты!")
+
     if WEB_APP_URL and WEB_APP_URL.startswith("https://"):
         try:
             await bot.set_chat_menu_button(
@@ -281,9 +312,9 @@ async def handle_accept_terms(callback: types.CallbackQuery):
                     web_app=WebAppInfo(url=WEB_APP_URL)
                 )
             )
-        except Exception:
-            pass
-    db_user = await get_user(user.id)
+        except Exception as e:
+            logger.warning("Could not set chat menu button: %s", e)
+
     await send_main_menu(callback, user, db_user, is_edit=True)
 
 @dp.callback_query(F.data == "open_app_info")
