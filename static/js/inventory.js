@@ -16,6 +16,7 @@ class InventoryManager {
         this.inspectDesc = document.getElementById('inspect-gift-desc');
         this.inspectValue = document.getElementById('inspect-gift-value');
         this.btnSellInspect = document.getElementById('btn-inspect-sell');
+        this.btnSellAll = document.getElementById('btn-inventory-sell-all');
 
         this.currentInspectedGift = null;
         this.gifts = [];
@@ -30,6 +31,35 @@ class InventoryManager {
                     this.sellGift(this.currentInspectedGift.id, this.currentInspectedGift.gift_name, this.currentInspectedGift.stars_value);
                 }
             });
+        }
+        if (this.btnSellAll) {
+            this.btnSellAll.addEventListener('click', () => {
+                this.sellAllGifts();
+            });
+        }
+    }
+
+    async sellAllGifts() {
+        if (!this.gifts || this.gifts.length === 0) return;
+        const total = this.gifts.reduce((sum, g) => sum + g.stars_value, 0);
+        if (!confirm(`Продать все ${this.gifts.length} подарков за ${total} ⭐️?`)) return;
+
+        try {
+            const res = await window.apiCall('/api/user/gifts/sell_all', 'POST');
+            if (res.success) {
+                window.sound.playWin();
+                window.updateUserBalance(res.new_balance);
+                window.showToast(`✅ ${res.message}`);
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
+                await this.loadGifts();
+            } else {
+                window.showToast(res.error || "Ошибка массовой продажи");
+            }
+        } catch (e) {
+            console.error("Sell all error:", e);
+            window.showToast("Ошибка сети при продаже");
         }
     }
 

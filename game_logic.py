@@ -428,17 +428,19 @@ CASES_CATALOG = {
 }
 
 active_crash_sessions: dict[str, dict] = {}
+active_mines_sessions: dict[str, dict] = {}
+active_storm_sessions: dict[str, dict] = {}
 
 def generate_crash_multiplier() -> tuple[float, str]:
-    """Generates provably fair crash multiplier with ~14% house edge (lower win rate)."""
+    """Generates provably fair crash multiplier with lowered win rate (~18% instant crash)."""
     server_seed = uuid.uuid4().hex
     r = random.random()
-    # 14% instant crash at 1.00x
-    if r < 0.14:
+    # 18% instant crash at 1.00x
+    if r < 0.18:
         multiplier = 1.00
     else:
-        # Standard crash formula with 14% edge
-        raw_mult = 0.86 / (1.0 - r)
+        # Standard crash formula with 20% house edge
+        raw_mult = 0.80 / (1.0 - r)
         multiplier = min(100.0, max(1.01, round(raw_mult, 2)))
 
     hash_proof = hashlib.sha256(f"{server_seed}:{multiplier}".encode()).hexdigest()
@@ -482,11 +484,11 @@ def cash_out_crash(session_id: str, client_multiplier: float) -> tuple[bool, int
     return True, win_amount, client_multiplier, "Успешный забор!"
 
 def play_coinflip(bet_amount: int, chosen_side: str) -> dict:
-    """Coinflip: 1.90x multiplier payout (10% house edge)."""
+    """Coinflip: 1.80x multiplier payout (20% house edge)."""
     winning_side = random.choice(["heads", "tails"])
     is_win = (chosen_side == winning_side)
-    multiplier = 1.90 if is_win else 0.0
-    win_amount = int(bet_amount * 1.90) if is_win else 0
+    multiplier = 1.80 if is_win else 0.0
+    win_amount = int(bet_amount * 1.80) if is_win else 0
     salt = uuid.uuid4().hex[:12]
     proof = hashlib.sha256(f"{salt}:{winning_side}".encode()).hexdigest()
     return {
@@ -500,7 +502,7 @@ def play_coinflip(bet_amount: int, chosen_side: str) -> dict:
 
 def play_gift_upgrader(source_value: int, target_gift_id: str) -> dict:
     """Upgrades a Telegram gift into a target Telegram Gift.
-       Formula: (source_value / target_value) * 88% (12% house edge).
+       Formula: (source_value / target_value) * 78% (22% house edge for lower win rate).
     """
     target_gift = TELEGRAM_GIFTS.get(target_gift_id)
     if not target_gift:
@@ -510,8 +512,8 @@ def play_gift_upgrader(source_value: int, target_gift_id: str) -> dict:
     if source_value >= target_value:
         raise ValueError("Целевой подарок должен иметь большую стоимость, чем исходный")
 
-    raw_chance = (source_value / target_value) * 88.0
-    win_chance_percent = min(92.0, max(0.5, round(raw_chance, 2)))
+    raw_chance = (source_value / target_value) * 78.0
+    win_chance_percent = min(85.0, max(0.5, round(raw_chance, 2)))
     win_sector_angle = round((win_chance_percent / 100.0) * 360.0, 2)
 
     stop_angle = round(random.uniform(0.0, 360.0), 2)
@@ -543,6 +545,183 @@ def play_gift_upgrader(source_value: int, target_gift_id: str) -> dict:
         "win_sector_angle": win_sector_angle,
         "stop_angle": stop_angle
     }
+
+# --- MINES (МИНЫ 5x5) GAME LOGIC ---
+def start_mines_session(telegram_id: int, bet_amount: int, mines_count: int) -> dict:
+    if mines_count < 1 or mines_count > 24:
+        raise ValueError("Количество мин должно быть от 1 до 24")
+    if bet_amount < 1:
+        raise ValueError("Минимальная ставка 1 ⭐️")
+    
+    all_indices = list(range(25))
+    mine_positions = set(random.sample(all_indices, mines_count))
+    session_id = uuid.uuid4().hex
+    
+    salt = uuid.uuid4().hex
+    proof = hashlib.sha256(f"{salt}:{sorted(list(mine_positions))}".encode()).hexdigest()
+    
+    active_mines_sessions[session_id] = {
+        "session_id": session_id,
+        "telegram_id": telegram_id,
+        "bet_amount": bet_amount,
+        "mines_count": mines_count,
+        "mine_positions": mine_positions,
+        "revealed": set(),
+        "salt": salt,
+        "proof": proof,
+        "status": "active"
+    }
+    return {
+        "session_id": session_id,
+        "proof": proof,
+        "bet_amount": bet_amount,
+        "mines_count": mines_count,
+        "total_cells": 25
+    }
+
+def calculate_mines_multiplier(revealed_count: int, mines_count: int) -> float:
+    """Calculates multiplier with 18% house edge for each step."""
+    if revealed_count == 0:
+        return 1.00
+    prob = 1.0
+    for i in range(revealed_count):
+        prob *= (25 - mines_count - i) / (25 - i)
+    if prob <= 0:
+        return 1.00
+    fair_mult = 1.0 / prob
+    mult = fair_mult * 0.82
+    return max(1.02, round(mult, 2))
+
+def reveal_mines_tile(session_id: str, tile_index: int) -> dict:
+    session = active_mines_sessions.get(session_id)
+    if not session or session["status"] != "active":
+        raise ValueError("Сессия игры не активна")
+    if tile_index in session["revealed"]:
+        raise ValueError("Ячейка уже открыта")
+    if tile_index < 0 or tile_index >= 25:
+        raise ValueError("Некорректный номер ячейки")
+        
+    if tile_index in session["mine_positions"]:
+        session["status"] = "lost"
+        return {
+            "status": "lost",
+            "hit_mine": True,
+            "tile_index": tile_index,
+            "mine_positions": list(session["mine_positions"]),
+            "multiplier": 0.0,
+            "win_amount": 0
+        }
+        
+    session["revealed"].add(tile_index)
+    mult = calculate_mines_multiplier(len(session["revealed"]), session["mines_count"])
+    win_amount = int(session["bet_amount"] * mult)
+    
+    is_all_safe_cleared = (len(session["revealed"]) == (25 - session["mines_count"]))
+    if is_all_safe_cleared:
+        session["status"] = "won"
+        
+    return {
+        "status": "won" if is_all_safe_cleared else "active",
+        "hit_mine": False,
+        "tile_index": tile_index,
+        "revealed_count": len(session["revealed"]),
+        "multiplier": mult,
+        "win_amount": win_amount,
+        "mine_positions": list(session["mine_positions"]) if is_all_safe_cleared else []
+    }
+
+def cash_out_mines(session_id: str) -> tuple[bool, int, float, list[int], str]:
+    session = active_mines_sessions.get(session_id)
+    if not session or session["status"] != "active":
+        return False, 0, 0.0, [], "Сессия не активна"
+    if len(session["revealed"]) == 0:
+        return False, 0, 0.0, [], "Откройте хотя бы одну ячейку"
+        
+    mult = calculate_mines_multiplier(len(session["revealed"]), session["mines_count"])
+    win_amount = int(session["bet_amount"] * mult)
+    session["status"] = "cashed_out"
+    mines_list = list(session["mine_positions"])
+    return True, win_amount, mult, mines_list, "Успешный вывод из мин!"
+
+# --- STORM (ШТОРМ) GAME LOGIC ---
+STORM_MULTIPLIERS = [1.25, 1.65, 2.30, 3.40, 5.20, 8.50, 15.00]
+
+def start_storm_session(telegram_id: int, bet_amount: int) -> dict:
+    if bet_amount < 1:
+        raise ValueError("Минимальная ставка 1 ⭐️")
+    session_id = uuid.uuid4().hex
+    
+    # 7 levels, 3 clouds per level (0, 1, 2). 1 has lightning, 2 are safe
+    lightning_positions = [random.randint(0, 2) for _ in range(len(STORM_MULTIPLIERS))]
+    salt = uuid.uuid4().hex
+    proof = hashlib.sha256(f"{salt}:{lightning_positions}".encode()).hexdigest()
+    
+    active_storm_sessions[session_id] = {
+        "session_id": session_id,
+        "telegram_id": telegram_id,
+        "bet_amount": bet_amount,
+        "lightning_positions": lightning_positions,
+        "current_level": 0,
+        "status": "active",
+        "proof": proof,
+        "salt": salt
+    }
+    return {
+        "session_id": session_id,
+        "proof": proof,
+        "bet_amount": bet_amount,
+        "multipliers": STORM_MULTIPLIERS,
+        "total_levels": len(STORM_MULTIPLIERS)
+    }
+
+def step_storm(session_id: str, chosen_cloud: int) -> dict:
+    session = active_storm_sessions.get(session_id)
+    if not session or session["status"] != "active":
+        raise ValueError("Сессия шторма не активна")
+    if chosen_cloud not in [0, 1, 2]:
+        raise ValueError("Некорректный выбор облака")
+        
+    level = session["current_level"]
+    lightning = session["lightning_positions"][level]
+    
+    if chosen_cloud == lightning:
+        session["status"] = "struck"
+        return {
+            "status": "struck",
+            "hit_lightning": True,
+            "level": level,
+            "lightning_cloud": lightning,
+            "multiplier": 0.0,
+            "win_amount": 0
+        }
+        
+    session["current_level"] += 1
+    mult = STORM_MULTIPLIERS[level]
+    win_amount = int(session["bet_amount"] * mult)
+    is_top_reached = (session["current_level"] >= len(STORM_MULTIPLIERS))
+    if is_top_reached:
+        session["status"] = "won"
+        
+    return {
+        "status": "won" if is_top_reached else "active",
+        "hit_lightning": False,
+        "level": level,
+        "multiplier": mult,
+        "win_amount": win_amount,
+        "is_top_reached": is_top_reached
+    }
+
+def cash_out_storm(session_id: str) -> tuple[bool, int, float, str]:
+    session = active_storm_sessions.get(session_id)
+    if not session or session["status"] != "active":
+        return False, 0, 0.0, "Сессия не активна"
+    if session["current_level"] == 0:
+        return False, 0, 0.0, "Пройдите хотя бы один уровень"
+        
+    mult = STORM_MULTIPLIERS[session["current_level"] - 1]
+    win_amount = int(session["bet_amount"] * mult)
+    session["status"] = "cashed_out"
+    return True, win_amount, mult, "Успешный спуск из шторма!"
 
 def open_case(case_id: str) -> dict:
     case = CASES_CATALOG.get(case_id)

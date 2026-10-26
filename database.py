@@ -56,6 +56,17 @@ async def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS withdrawals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                telegram_id INTEGER NOT NULL,
+                amount INTEGER NOT NULL,
+                address TEXT NOT NULL,
+                method TEXT NOT NULL,
+                status TEXT DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
         # Safe migration for terms_accepted column
         try:
             await db.execute("ALTER TABLE users ADD COLUMN terms_accepted INTEGER DEFAULT 0")
@@ -245,6 +256,63 @@ async def consume_user_gift(gift_db_id: int, telegram_id: int) -> dict | None:
             await db.execute("UPDATE user_gifts SET is_sold = 1 WHERE id = ?", (gift_db_id,))
             await db.commit()
             return gift_dict
+
+async def sell_all_user_gifts(telegram_id: int) -> tuple[bool, int, int, str]:
+    """Sells all unsold gifts in the user's inventory."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT id, stars_value FROM user_gifts WHERE telegram_id = ? AND is_sold = 0", (telegram_id,)) as cur:
+            rows = await cur.fetchall()
+            if not rows:
+                return False, 0, 0, "У вас нет подарков для продажи"
+            total_stars = sum(r["stars_value"] for r in rows)
+            count = len(rows)
+            await db.execute("UPDATE user_gifts SET is_sold = 1 WHERE telegram_id = ? AND is_sold = 0", (telegram_id,))
+            await db.commit()
+
+    new_balance = await change_balance(
+        telegram_id=telegram_id,
+        delta=total_stars,
+        tx_type="sell_all_gifts",
+        details=f"Массовая продажа {count} подарков: +{total_stars} XTR"
+    )
+    return True, new_balance, total_stars, f"Продано {count} подарков на сумму {total_stars} ⭐️!"
+
+async def create_withdrawal(telegram_id: int, amount: int, address: str, method: str = "Telegram Stars") -> tuple[bool, int, str]:
+    """Creates a withdrawal request, deducting stars from user balance."""
+    if amount < 50:
+        return False, 0, "Минимальная сумма вывода — 50 ⭐️"
+    
+    current_balance = await get_user_balance(telegram_id)
+    if current_balance < amount:
+        return False, current_balance, "Недостаточно звёзд на балансе"
+    
+    new_balance = await change_balance(
+        telegram_id=telegram_id,
+        delta=-amount,
+        tx_type="withdrawal",
+        details=f"Заявка на вывод: -{amount} XTR ({method} на {address})"
+    )
+    
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "INSERT INTO withdrawals (telegram_id, amount, address, method, status) VALUES (?, ?, ?, ?, 'pending')",
+            (telegram_id, amount, address, method)
+        )
+        await db.commit()
+        
+    return True, new_balance, f"Заявка на вывод {amount} ⭐️ успешно создана!"
+
+async def get_user_withdrawals(telegram_id: int) -> list[dict]:
+    """Retrieves user's withdrawal requests."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM withdrawals WHERE telegram_id = ? ORDER BY id DESC LIMIT 20",
+            (telegram_id,)
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
 
 async def get_recent_drops(limit: int = 12) -> list[dict]:
     """Returns recent big wins and drops for the live ticker feed."""

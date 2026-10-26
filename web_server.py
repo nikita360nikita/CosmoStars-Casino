@@ -18,7 +18,10 @@ from database import (
     get_user_history,
     log_game,
     sell_user_gift,
+    sell_all_user_gifts,
     consume_user_gift,
+    create_withdrawal,
+    get_user_withdrawals,
 )
 from game_logic import (
     CASES_CATALOG,
@@ -29,6 +32,14 @@ from game_logic import (
     play_coinflip,
     play_gift_upgrader,
     start_crash_round,
+    start_mines_session,
+    reveal_mines_tile,
+    cash_out_mines,
+    active_mines_sessions,
+    start_storm_session,
+    step_storm,
+    cash_out_storm,
+    active_storm_sessions,
 )
 from bot import create_stars_invoice_link
 
@@ -468,6 +479,276 @@ async def api_sell_user_gift(request: web.Request) -> web.Response:
         "new_balance": new_bal
     })
 
+async def api_sell_all_user_gifts(request: web.Request) -> web.Response:
+    user = await get_request_user(request)
+    ok, new_bal, total_stars, msg = await sell_all_user_gifts(user["telegram_id"])
+    if not ok:
+        return json_response({"success": False, "error": msg}, 400)
+    return json_response({
+        "success": True,
+        "message": msg,
+        "total_stars": total_stars,
+        "new_balance": new_bal
+    })
+
+# --- WITHDRAWALS (ВЫВОД СРЕДСТВ) ---
+async def api_create_withdrawal(request: web.Request) -> web.Response:
+    user = await get_request_user(request)
+    data = await request.json()
+    amount = int(data.get("amount", 0))
+    address = str(data.get("address", "")).strip()
+    method = str(data.get("method", "Telegram Stars")).strip()
+
+    if amount < 50:
+        return json_response({"success": False, "error": "Минимальная сумма вывода 50 ⭐️"}, 400)
+    if not address:
+        return json_response({"success": False, "error": "Укажите адрес или username для вывода"}, 400)
+
+    ok, new_bal, msg = await create_withdrawal(user["telegram_id"], amount, address, method)
+    if not ok:
+        return json_response({"success": False, "error": msg}, 400)
+
+    return json_response({
+        "success": True,
+        "message": msg,
+        "new_balance": new_bal
+    })
+
+async def api_get_withdrawals(request: web.Request) -> web.Response:
+    user = await get_request_user(request)
+    withdrawals = await get_user_withdrawals(user["telegram_id"])
+    return json_response({
+        "success": True,
+        "withdrawals": withdrawals
+    })
+
+# --- MINES (МИНЫ 5x5) HANDLERS ---
+async def api_mines_start(request: web.Request) -> web.Response:
+    user = await get_request_user(request)
+    data = await request.json()
+    bet = int(data.get("bet_amount", 0))
+    mines_count = int(data.get("mines_count", 3))
+
+    if bet <= 0:
+        return json_response({"success": False, "error": "Некорректная ставка"}, 400)
+    if user["balance"] < bet:
+        return json_response({"success": False, "error": "Недостаточно звезд на балансе"}, 400)
+
+    try:
+        new_balance = await change_balance(
+            telegram_id=user["telegram_id"],
+            delta=-bet,
+            tx_type="bet_mines",
+            details=f"Ставка в Минах: {bet} XTR ({mines_count} мин)"
+        )
+        session_info = start_mines_session(user["telegram_id"], bet, mines_count)
+        return json_response({
+            "success": True,
+            "session_id": session_info["session_id"],
+            "proof": session_info["proof"],
+            "bet_amount": bet,
+            "mines_count": mines_count,
+            "new_balance": new_balance
+        })
+    except Exception as e:
+        return json_response({"success": False, "error": str(e)}, 400)
+
+async def api_mines_reveal(request: web.Request) -> web.Response:
+    user = await get_request_user(request)
+    data = await request.json()
+    session_id = data.get("session_id")
+    tile_index = int(data.get("tile_index", -1))
+
+    session = active_mines_sessions.get(session_id)
+    if not session or session["telegram_id"] != user["telegram_id"]:
+        return json_response({"success": False, "error": "Сессия не найдена"}, 400)
+
+    try:
+        res = reveal_mines_tile(session_id, tile_index)
+        new_balance = user["balance"]
+        if res["status"] == "lost":
+            await log_game(
+                telegram_id=user["telegram_id"],
+                game="mines",
+                bet=session["bet_amount"],
+                win=0,
+                multiplier=0.0,
+                details={"status": "lost", "mines_count": session["mines_count"]}
+            )
+        elif res["status"] == "won":
+            new_balance = await change_balance(
+                telegram_id=user["telegram_id"],
+                delta=res["win_amount"],
+                tx_type="win_mines",
+                details=f"Победа в Минах: {res['win_amount']} XTR ({res['multiplier']}x)"
+            )
+            await log_game(
+                telegram_id=user["telegram_id"],
+                game="mines",
+                bet=session["bet_amount"],
+                win=res["win_amount"],
+                multiplier=res["multiplier"],
+                details={"status": "won_all", "mines_count": session["mines_count"]}
+            )
+
+        return json_response({
+            "success": True,
+            **res,
+            "new_balance": new_balance
+        })
+    except Exception as e:
+        return json_response({"success": False, "error": str(e)}, 400)
+
+async def api_mines_cashout(request: web.Request) -> web.Response:
+    user = await get_request_user(request)
+    data = await request.json()
+    session_id = data.get("session_id")
+
+    session = active_mines_sessions.get(session_id)
+    if not session or session["telegram_id"] != user["telegram_id"]:
+        return json_response({"success": False, "error": "Сессия не найдена"}, 400)
+
+    ok, win_amount, mult, mines_list, msg = cash_out_mines(session_id)
+    if not ok:
+        return json_response({"success": False, "error": msg}, 400)
+
+    new_balance = await change_balance(
+        telegram_id=user["telegram_id"],
+        delta=win_amount,
+        tx_type="win_mines",
+        details=f"Забор из Мин: {win_amount} XTR ({mult}x)"
+    )
+    await log_game(
+        telegram_id=user["telegram_id"],
+        game="mines",
+        bet=session["bet_amount"],
+        win=win_amount,
+        multiplier=mult,
+        details={"status": "cashed_out", "mines_count": session["mines_count"]}
+    )
+
+    return json_response({
+        "success": True,
+        "win_amount": win_amount,
+        "multiplier": mult,
+        "mine_positions": mines_list,
+        "new_balance": new_balance,
+        "message": msg
+    })
+
+# --- STORM (ШТОРМ) HANDLERS ---
+async def api_storm_start(request: web.Request) -> web.Response:
+    user = await get_request_user(request)
+    data = await request.json()
+    bet = int(data.get("bet_amount", 0))
+
+    if bet <= 0:
+        return json_response({"success": False, "error": "Некорректная ставка"}, 400)
+    if user["balance"] < bet:
+        return json_response({"success": False, "error": "Недостаточно звезд на балансе"}, 400)
+
+    try:
+        new_balance = await change_balance(
+            telegram_id=user["telegram_id"],
+            delta=-bet,
+            tx_type="bet_storm",
+            details=f"Ставка в Шторме: {bet} XTR"
+        )
+        session_info = start_storm_session(user["telegram_id"], bet)
+        return json_response({
+            "success": True,
+            "session_id": session_info["session_id"],
+            "proof": session_info["proof"],
+            "bet_amount": bet,
+            "multipliers": session_info["multipliers"],
+            "total_levels": session_info["total_levels"],
+            "new_balance": new_balance
+        })
+    except Exception as e:
+        return json_response({"success": False, "error": str(e)}, 400)
+
+async def api_storm_step(request: web.Request) -> web.Response:
+    user = await get_request_user(request)
+    data = await request.json()
+    session_id = data.get("session_id")
+    chosen_cloud = int(data.get("chosen_cloud", 0))
+
+    session = active_storm_sessions.get(session_id)
+    if not session or session["telegram_id"] != user["telegram_id"]:
+        return json_response({"success": False, "error": "Сессия не найдена"}, 400)
+
+    try:
+        res = step_storm(session_id, chosen_cloud)
+        new_balance = user["balance"]
+        if res["status"] == "struck":
+            await log_game(
+                telegram_id=user["telegram_id"],
+                game="storm",
+                bet=session["bet_amount"],
+                win=0,
+                multiplier=0.0,
+                details={"status": "struck", "level": res["level"]}
+            )
+        elif res["status"] == "won":
+            new_balance = await change_balance(
+                telegram_id=user["telegram_id"],
+                delta=res["win_amount"],
+                tx_type="win_storm",
+                details=f"Победа в Шторме: {res['win_amount']} XTR ({res['multiplier']}x)"
+            )
+            await log_game(
+                telegram_id=user["telegram_id"],
+                game="storm",
+                bet=session["bet_amount"],
+                win=res["win_amount"],
+                multiplier=res["multiplier"],
+                details={"status": "won_top", "level": res["level"]}
+            )
+
+        return json_response({
+            "success": True,
+            **res,
+            "new_balance": new_balance
+        })
+    except Exception as e:
+        return json_response({"success": False, "error": str(e)}, 400)
+
+async def api_storm_cashout(request: web.Request) -> web.Response:
+    user = await get_request_user(request)
+    data = await request.json()
+    session_id = data.get("session_id")
+
+    session = active_storm_sessions.get(session_id)
+    if not session or session["telegram_id"] != user["telegram_id"]:
+        return json_response({"success": False, "error": "Сессия не найдена"}, 400)
+
+    ok, win_amount, mult, msg = cash_out_storm(session_id)
+    if not ok:
+        return json_response({"success": False, "error": msg}, 400)
+
+    new_balance = await change_balance(
+        telegram_id=user["telegram_id"],
+        delta=win_amount,
+        tx_type="win_storm",
+        details=f"Забор из Шторма: {win_amount} XTR ({mult}x)"
+    )
+    await log_game(
+        telegram_id=user["telegram_id"],
+        game="storm",
+        bet=session["bet_amount"],
+        win=win_amount,
+        multiplier=mult,
+        details={"status": "cashed_out", "level": session["current_level"]}
+    )
+
+    return json_response({
+        "success": True,
+        "win_amount": win_amount,
+        "multiplier": mult,
+        "new_balance": new_balance,
+        "message": msg
+    })
+
 # --- LIVE ACTIVITY FEED ---
 async def api_get_live_feed(request: web.Request) -> web.Response:
     drops = await get_recent_drops(limit=15)
@@ -576,6 +857,11 @@ def create_web_app() -> web.Application:
     # Gifts inventory endpoints
     app.router.add_get("/api/user/gifts", api_get_user_gifts)
     app.router.add_post("/api/user/gifts/sell", api_sell_user_gift)
+    app.router.add_post("/api/user/gifts/sell_all", api_sell_all_user_gifts)
+
+    # Withdrawals endpoints
+    app.router.add_post("/api/withdraw", api_create_withdrawal)
+    app.router.add_get("/api/withdraw/history", api_get_withdrawals)
 
     # Game endpoints
     app.router.add_post("/api/games/crash/start", api_crash_start)
@@ -583,6 +869,12 @@ def create_web_app() -> web.Application:
     app.router.add_post("/api/games/coinflip", api_coinflip_play)
     app.router.add_post("/api/games/upgrader", api_upgrader_play)
     app.router.add_post("/api/cases/open", api_case_open)
+    app.router.add_post("/api/games/mines/start", api_mines_start)
+    app.router.add_post("/api/games/mines/reveal", api_mines_reveal)
+    app.router.add_post("/api/games/mines/cashout", api_mines_cashout)
+    app.router.add_post("/api/games/storm/start", api_storm_start)
+    app.router.add_post("/api/games/storm/step", api_storm_step)
+    app.router.add_post("/api/games/storm/cashout", api_storm_cashout)
 
     # Stars & Demo endpoints
     app.router.add_post("/api/deposit/create_invoice", api_create_invoice)

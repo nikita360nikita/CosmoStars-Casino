@@ -1,5 +1,9 @@
 // Main App State & Controller
 window.currentUser = null;
+window.apiPost = (url, body) => window.apiCall(url, 'POST', body);
+window.updateBalance = (bal) => window.updateUserBalance(bal);
+window.soundManager = window.sound;
+window.confettiManager = window.confetti;
 
 // API helper with Telegram initData header
 window.apiCall = async function(endpoint, method = 'GET', body = null) {
@@ -223,6 +227,98 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // 3.5. Withdrawal Modal Handlers
+    const modalWithdraw = document.getElementById('modal-withdraw');
+    const btnOpenWithdraw = document.getElementById('btn-open-withdraw');
+
+    async function loadWithdrawalHistory() {
+        const listEl = document.getElementById('withdraw-history-list');
+        if (!listEl) return;
+        try {
+            const res = await window.apiCall('/api/withdraw/history', 'GET');
+            if (res.success && res.withdrawals && res.withdrawals.length > 0) {
+                listEl.innerHTML = '';
+                res.withdrawals.forEach(w => {
+                    const item = document.createElement('div');
+                    item.className = 'withdraw-item';
+                    const isOk = w.status === 'completed';
+                    const statusClass = isOk ? 'status-ok' : 'status-pending';
+                    const statusText = isOk ? '✅ Выплачено' : '⏳ В обработке';
+                    item.innerHTML = `
+                        <div class="withdraw-item-left">
+                            <span class="withdraw-item-amount">${w.amount} ⭐️</span>
+                            <span class="withdraw-item-dest">${w.method}: ${w.address}</span>
+                        </div>
+                        <span class="withdraw-status-badge ${statusClass}">${statusText}</span>
+                    `;
+                    listEl.appendChild(item);
+                });
+            } else {
+                listEl.innerHTML = '<div class="withdraw-empty-hint">Заявок пока нет</div>';
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    if (btnOpenWithdraw && modalWithdraw) {
+        btnOpenWithdraw.addEventListener('click', () => {
+            window.sound.playClick();
+            modalWithdraw.classList.add('active');
+            loadWithdrawalHistory();
+        });
+    }
+
+    document.querySelectorAll('.btn-withdraw-method').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.btn-withdraw-method').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
+
+    const btnSubmitWithdraw = document.getElementById('btn-submit-withdraw');
+    if (btnSubmitWithdraw) {
+        btnSubmitWithdraw.addEventListener('click', async () => {
+            const amountInput = document.getElementById('withdraw-amount-input');
+            const addressInput = document.getElementById('withdraw-address-input');
+            const activeMethodBtn = document.querySelector('.btn-withdraw-method.active');
+
+            const amount = parseInt(amountInput.value) || 0;
+            const address = addressInput.value.trim();
+            const method = activeMethodBtn ? activeMethodBtn.dataset.method : 'Telegram Stars';
+
+            if (amount < 50) {
+                window.showToast("Минимальная сумма вывода — 50 ⭐️");
+                return;
+            }
+            if (!address) {
+                window.showToast("Укажите реквизиты для вывода");
+                return;
+            }
+
+            btnSubmitWithdraw.disabled = true;
+            btnSubmitWithdraw.textContent = "СОЗДАНИЕ ЗАЯВКИ...";
+
+            try {
+                const res = await window.apiCall('/api/withdraw', 'POST', { amount, address, method });
+                if (res.success) {
+                    window.sound.playWin();
+                    window.updateUserBalance(res.new_balance);
+                    window.showToast(`✅ ${res.message}`);
+                    addressInput.value = '';
+                    loadWithdrawalHistory();
+                } else {
+                    window.showToast(res.error || "Ошибка вывода");
+                }
+            } catch (e) {
+                window.showToast("Ошибка сети при выводе");
+            } finally {
+                btnSubmitWithdraw.disabled = false;
+                btnSubmitWithdraw.textContent = "СОЗДАТЬ ЗАЯВКУ НА ВЫВОД";
+            }
+        });
+    }
 
     // 4. Tab Navigation
     const navItems = document.querySelectorAll('.nav-item');

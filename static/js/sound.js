@@ -22,6 +22,15 @@ class SoundManager {
         return this.enabled;
     }
 
+    play(name) {
+        if (name === 'click') this.playClick();
+        else if (name === 'win') this.playWin();
+        else if (name === 'lose') this.playLose();
+        else if (name === 'explosion') this.playExplosion();
+        else if (name === 'coin') this.playCoinFlip();
+        else this.playClick();
+    }
+
     playClick() {
         if (!this.enabled) return;
         this.init();
