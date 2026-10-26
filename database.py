@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from datetime import datetime
 import aiosqlite
 from config import DB_PATH, INITIAL_DEMO_BALANCE
@@ -67,6 +68,12 @@ async def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS bot_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        """)
         # Safe migration for terms_accepted column
         try:
             await db.execute("ALTER TABLE users ADD COLUMN terms_accepted INTEGER DEFAULT 0")
@@ -126,6 +133,11 @@ async def get_user(telegram_id: int) -> dict | None:
         async with db.execute("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,)) as cursor:
             row = await cursor.fetchone()
             return dict(row) if row else None
+
+async def get_user_balance(telegram_id: int) -> int:
+    """Gets the current balance of a user."""
+    user = await get_user(telegram_id)
+    return user["balance"] if user else 0
 
 async def change_balance(telegram_id: int, delta: int, tx_type: str, details: str = "", charge_id: str | None = None) -> int:
     """Safely increments or decrements user balance with transaction record."""
@@ -278,14 +290,14 @@ async def sell_all_user_gifts(telegram_id: int) -> tuple[bool, int, int, str]:
     )
     return True, new_balance, total_stars, f"Продано {count} подарков на сумму {total_stars} ⭐️!"
 
-async def create_withdrawal(telegram_id: int, amount: int, address: str, method: str = "Telegram Stars") -> tuple[bool, int, str]:
+async def create_withdrawal(telegram_id: int, amount: int, address: str, method: str = "Telegram Stars") -> tuple[bool, int, str, int | None]:
     """Creates a withdrawal request, deducting stars from user balance."""
     if amount < 100:
-        return False, 0, "Минимальная сумма вывода — 100 ⭐️"
+        return False, 0, "Минимальная сумма вывода — 100 ⭐️", None
     
     current_balance = await get_user_balance(telegram_id)
     if current_balance < amount:
-        return False, current_balance, "Недостаточно звёзд на балансе"
+        return False, current_balance, "Недостаточно звёзд на балансе", None
     
     new_balance = await change_balance(
         telegram_id=telegram_id,
@@ -295,13 +307,14 @@ async def create_withdrawal(telegram_id: int, amount: int, address: str, method:
     )
     
     async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute(
+        cursor = await db.execute(
             "INSERT INTO withdrawals (telegram_id, amount, address, method, status) VALUES (?, ?, ?, ?, 'pending')",
             (telegram_id, amount, address, method)
         )
         await db.commit()
+        wid = cursor.lastrowid
         
-    return True, new_balance, f"Заявка на вывод {amount} ⭐️ успешно создана!"
+    return True, new_balance, f"Заявка на вывод {amount} ⭐️ успешно создана!", wid
 
 async def get_user_withdrawals(telegram_id: int) -> list[dict]:
     """Retrieves user's withdrawal requests."""
@@ -310,6 +323,72 @@ async def get_user_withdrawals(telegram_id: int) -> list[dict]:
         async with db.execute(
             "SELECT * FROM withdrawals WHERE telegram_id = ? ORDER BY id DESC LIMIT 20",
             (telegram_id,)
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
+
+async def get_setting(key: str, default: str = None) -> str | None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT value FROM bot_settings WHERE key = ?", (key,)) as cursor:
+            row = await cursor.fetchone()
+            if row:
+                return row[0]
+            return default
+
+async def set_setting(key: str, value: str):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("INSERT OR REPLACE INTO bot_settings (key, value) VALUES (?, ?)", (key, str(value)))
+        await db.commit()
+
+async def get_admin_chat_id() -> int | None:
+    # 1. Check environment variable
+    env_id = os.getenv("ADMIN_CHAT_ID", "").strip()
+    if env_id and env_id.isdigit():
+        return int(env_id)
+
+    # 2. Check bot_settings table
+    saved = await get_setting("admin_chat_id")
+    if saved and saved.isdigit():
+        return int(saved)
+
+    # 3. Lookup user with username 'ankisolom'
+    admin_uname = os.getenv("ADMIN_USERNAME", "ankisolom").lstrip("@").lower()
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT telegram_id FROM users WHERE LOWER(username) = ? LIMIT 1", (admin_uname,)) as cursor:
+            row = await cursor.fetchone()
+            if row:
+                cid = row["telegram_id"]
+                await set_setting("admin_chat_id", str(cid))
+                return cid
+    return None
+
+async def save_admin_chat_id(telegram_id: int):
+    await set_setting("admin_chat_id", str(telegram_id))
+
+async def get_withdrawal_by_id(withdrawal_id: int) -> dict | None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM withdrawals WHERE id = ?", (withdrawal_id,)) as cursor:
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+
+async def update_withdrawal_status(withdrawal_id: int, status: str) -> bool:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE withdrawals SET status = ? WHERE id = ?", (status, withdrawal_id))
+        await db.commit()
+        return True
+
+async def get_pending_withdrawals(limit: int = 20) -> list[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            """SELECT w.*, u.username, u.first_name, u.balance
+               FROM withdrawals w
+               LEFT JOIN users u ON w.telegram_id = u.telegram_id
+               WHERE w.status = 'pending'
+               ORDER BY w.id ASC LIMIT ?""",
+            (limit,)
         ) as cursor:
             rows = await cursor.fetchall()
             return [dict(r) for r in rows]

@@ -11,7 +11,16 @@ from aiogram.types import (
     WebAppInfo,
 )
 from aiogram.client.session.aiohttp import AiohttpSession
-from config import BOT_TOKEN, TELEGRAM_PROXY, WEB_APP_URL, REQUIRED_CHANNEL, REQUIRED_CHANNEL_URL
+from config import (
+    BOT_TOKEN,
+    TELEGRAM_PROXY,
+    WEB_APP_URL,
+    REQUIRED_CHANNEL,
+    REQUIRED_CHANNEL_URL,
+    ADMIN_USERNAME,
+    ADMIN_SUPPORT_URL,
+    ADMIN_CHAT_ID,
+)
 from database import (
     accept_user_terms,
     change_balance,
@@ -21,6 +30,11 @@ from database import (
     get_user_gifts,
     get_user_history,
     get_user_terms_accepted,
+    get_withdrawal_by_id,
+    update_withdrawal_status,
+    get_pending_withdrawals,
+    save_admin_chat_id,
+    get_admin_chat_id,
 )
 
 logger = logging.getLogger(__name__)
@@ -110,6 +124,9 @@ def get_main_keyboard(webapp_url: str) -> InlineKeyboardMarkup:
             [
                 InlineKeyboardButton(text="🏆 Топ игроков", callback_data="leaderboard"),
                 InlineKeyboardButton(text="📜 Правила / О боте", callback_data="about_info")
+            ],
+            [
+                InlineKeyboardButton(text="💬 Поддержка", url=ADMIN_SUPPORT_URL)
             ]
         ]
     )
@@ -190,6 +207,20 @@ async def handle_start(message: types.Message):
         username=user.username or "",
         first_name=user.first_name or "Игрок"
     )
+
+    # 0. Check if user is the Admin (@ankisolom)
+    if user.username and user.username.lower() == ADMIN_USERNAME.lower():
+        await save_admin_chat_id(user.id)
+        logger.info("Admin @%s connected! Chat ID: %s", user.username, user.id)
+        pending = await get_pending_withdrawals(limit=10)
+        if pending:
+            await message.answer(
+                f"👑 <b>Панель администратора: @{user.username}</b>\n\n"
+                f"У вас <b>{len(pending)}</b> новых заявок на вывод средств! Отправляем подробности ниже ⬇️",
+                parse_mode="HTML"
+            )
+            for w in pending:
+                await send_admin_withdrawal_card(user.id, w)
 
     # 1. Check mandatory channel subscription
     is_subbed = await check_channel_subscription(user.id)
@@ -452,6 +483,7 @@ async def handle_about(callback: types.CallbackQuery):
         "• Инвентарь с подлинными коллекционными подарками Telegram.\n"
         "• Доказуемо честная механика <b>Provably Fair (SHA-256)</b>.\n\n"
         "📜 Все действия на платформе регулируются Пользовательским соглашением и Политикой конфиденциальности.\n\n"
+        f"💬 Служба поддержки: @{ADMIN_USERNAME}\n\n"
         "Желаем удачи и крупных побед! 🚀"
     )
     await callback.answer()
@@ -459,6 +491,7 @@ async def handle_about(callback: types.CallbackQuery):
         text=text,
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="💬 Поддержка", url=ADMIN_SUPPORT_URL)],
             [InlineKeyboardButton(text="📜 Читать политику", callback_data="read_policy")],
             [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
         ])
@@ -471,13 +504,15 @@ async def handle_withdraw_info(callback: types.CallbackQuery):
         "• Минимальная сумма вывода: <b>100 ⭐️</b>.\n"
         "• Способы выплаты: <b>Telegram Stars</b>, <b>TON Wallet</b>, <b>USDT (TRC-20)</b>.\n"
         "• Создать заявку на вывод можно в приложении по кнопке <b>«↗ Вывод»</b> в верхнем меню.\n\n"
-        "Все заявки обрабатываются автоматически или администрацией в течение 24 часов."
+        f"Все заявки мгновенно отправляются на обработку администратору @{ADMIN_USERNAME}.\n"
+        "Срок обработки: от 5 минут до 24 часов."
     )
     await callback.answer()
     await callback.message.edit_text(
         text=text,
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="💬 Поддержка по выплатам", url=ADMIN_SUPPORT_URL)],
             [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
         ])
     )
@@ -536,3 +571,182 @@ async def create_stars_invoice_link(user_id: int, stars_amount: int) -> str | No
     except Exception as e:
         logger.error("Failed to create invoice link: %s", e)
         return None
+
+# --- SUPPORT & ADMIN WITHDRAWAL DISPATCH SYSTEM ---
+
+@dp.message(Command("support", "help"))
+async def handle_support_command(message: types.Message):
+    support_text = (
+        "💬 <b>Служба поддержки CosmoStars Casino</b>\n\n"
+        "Возникли вопросы по пополнению, выводу средств или работе игр?\n"
+        f"Наш администратор всегда на связи: @{ADMIN_USERNAME}\n\n"
+        "Нажмите кнопку ниже, чтобы написать напрямую:"
+    )
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💬 Написать в поддержку (@ankisolom)", url=ADMIN_SUPPORT_URL)],
+        [InlineKeyboardButton(text="◀️ В главное меню", callback_data="back_to_menu")]
+    ])
+    await message.answer(support_text, parse_mode="HTML", reply_markup=markup)
+
+async def send_admin_withdrawal_card(chat_id: int, w: dict):
+    """Sends a structured withdrawal approval card directly to the Telegram admin."""
+    if not bot:
+        return
+    wid = w.get("id") or w.get("withdrawal_id", "—")
+    user_id = w.get("telegram_id")
+    amount = w.get("amount")
+    method = w.get("method")
+    address = w.get("address")
+    username = w.get("username", "")
+    first_name = w.get("first_name", "Игрок")
+    balance = w.get("balance", "—")
+
+    user_link = f"@{username}" if username else f"<a href='tg://user?id={user_id}'>{first_name}</a>"
+    profile_url = f"https://t.me/{username}" if username else f"tg://user?id={user_id}"
+
+    text = (
+        "🚨 <b>НОВАЯ ЗАЯВКА НА ВЫВОД СРЕДСТВ</b>\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🆔 <b>Заявка:</b> #{wid}\n"
+        f"👤 <b>Игрок:</b> {user_link}\n"
+        f"🔢 <b>Telegram ID:</b> <code>{user_id}</code>\n"
+        f"⭐️ <b>Сумма:</b> <b>{amount} Stars (XTR)</b>\n"
+        f"💳 <b>Способ вывода:</b> <b>{method}</b>\n"
+        f"📫 <b>Реквизиты:</b> <code>{address}</code>\n"
+        f"💰 <b>Остаток баланса:</b> {balance} ⭐️\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "<i>Выберите действие для обработки заявки:</i>"
+    )
+
+    buttons = [
+        [InlineKeyboardButton(text="👤 Написать игроку", url=profile_url)],
+        [
+            InlineKeyboardButton(text="✅ Одобрить (Выплачено)", callback_data=f"adm_appr_{wid}"),
+            InlineKeyboardButton(text="❌ Отклонить (Возврат)", callback_data=f"adm_rejc_{wid}")
+        ]
+    ]
+
+    try:
+        await bot.send_message(
+            chat_id=chat_id,
+            text=text,
+            parse_mode="HTML",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons)
+        )
+    except Exception as e:
+        logger.error("Could not send admin withdrawal card to chat %s: %s", chat_id, e)
+
+async def notify_admin_withdrawal(data: dict):
+    """Notifies admin (@ankisolom) in real-time when a player submits a withdrawal request."""
+    if not bot:
+        logger.warning("Bot instance unavailable; skipping withdrawal admin notification.")
+        return
+
+    admin_chat_id = await get_admin_chat_id()
+    if not admin_chat_id:
+        logger.warning("Admin chat ID not yet discovered (admin @%s hasn't pressed /start). Queued.", ADMIN_USERNAME)
+        return
+
+    await send_admin_withdrawal_card(admin_chat_id, data)
+
+@dp.callback_query(F.data.startswith("adm_appr_"))
+async def handle_admin_approve(callback: types.CallbackQuery):
+    try:
+        wid_str = callback.data.split("_")[-1]
+        if not wid_str.isdigit():
+            await callback.answer("Некорректный ID заявки", show_alert=True)
+            return
+        wid = int(wid_str)
+        w = await get_withdrawal_by_id(wid)
+        if not w:
+            await callback.answer("Заявка не найдена в базе!", show_alert=True)
+            return
+        if w["status"] != "pending":
+            await callback.answer(f"Заявка уже обработана: статус «{w['status']}»", show_alert=True)
+            return
+
+        await update_withdrawal_status(wid, "completed")
+        await callback.answer("✅ Заявка одобрена!")
+
+        orig_text = callback.message.html_text or callback.message.text or ""
+        updated_text = (
+            orig_text + f"\n\n<b>✅ ВЫПЛАЧЕНО администратором @{callback.from_user.username or callback.from_user.id}</b>"
+        )
+        try:
+            await callback.message.edit_text(updated_text, parse_mode="HTML", reply_markup=None)
+        except Exception:
+            pass
+
+        # Send notification to the player
+        try:
+            await bot.send_message(
+                chat_id=w["telegram_id"],
+                text=(
+                    f"🎉 <b>Ваша выплата подтверждена!</b>\n\n"
+                    f"⭐️ Сумма: <b>{w['amount']} Stars</b>\n"
+                    f"💳 Способ: <b>{w['method']}</b>\n"
+                    f"📫 Реквизиты: <code>{w['address']}</code>\n\n"
+                    f"Средства успешно переведены. Спасибо за игру в CosmoStars Casino!"
+                ),
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            logger.warning("Could not notify player %s of completed withdrawal: %s", w["telegram_id"], e)
+    except Exception as e:
+        logger.exception("Error handling admin approval: %s", e)
+        await callback.answer("Ошибка при обработке", show_alert=True)
+
+@dp.callback_query(F.data.startswith("adm_rejc_"))
+async def handle_admin_reject(callback: types.CallbackQuery):
+    try:
+        wid_str = callback.data.split("_")[-1]
+        if not wid_str.isdigit():
+            await callback.answer("Некорректный ID заявки", show_alert=True)
+            return
+        wid = int(wid_str)
+        w = await get_withdrawal_by_id(wid)
+        if not w:
+            await callback.answer("Заявка не найдена в базе!", show_alert=True)
+            return
+        if w["status"] != "pending":
+            await callback.answer(f"Заявка уже обработана: статус «{w['status']}»", show_alert=True)
+            return
+
+        await update_withdrawal_status(wid, "rejected")
+        # Refund stars back to the player
+        new_bal = await change_balance(
+            telegram_id=w["telegram_id"],
+            delta=w["amount"],
+            tx_type="withdrawal_refund",
+            details=f"Возврат по отклоненной заявке #{wid}: +{w['amount']} XTR"
+        )
+        await callback.answer("❌ Заявка отклонена, звёзды возвращены игроку!")
+
+        orig_text = callback.message.html_text or callback.message.text or ""
+        updated_text = (
+            orig_text + f"\n\n<b>❌ ОТКЛОНЕНО администратором @{callback.from_user.username or callback.from_user.id} (средства возвращены игроку)</b>"
+        )
+        try:
+            await callback.message.edit_text(updated_text, parse_mode="HTML", reply_markup=None)
+        except Exception:
+            pass
+
+        # Send notification to the player
+        try:
+            await bot.send_message(
+                chat_id=w["telegram_id"],
+                text=(
+                    f"❌ <b>Заявка на вывод #{wid} отклонена</b>\n\n"
+                    f"Сумма <b>{w['amount']} ⭐️</b> возвращена на ваш игровой баланс (Текущий баланс: <b>{new_bal} ⭐️</b>).\n\n"
+                    f"По всем вопросам вы можете обратиться в поддержку: @{ADMIN_USERNAME}"
+                ),
+                parse_mode="HTML",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="💬 Написать в поддержку", url=ADMIN_SUPPORT_URL)]
+                ])
+            )
+        except Exception as e:
+            logger.warning("Could not notify player %s of rejected withdrawal: %s", w["telegram_id"], e)
+    except Exception as e:
+        logger.exception("Error handling admin rejection: %s", e)
+        await callback.answer("Ошибка при обработке", show_alert=True)

@@ -9,8 +9,7 @@ window.confettiManager = window.confetti;
 window.apiCall = async function(endpoint, method = 'GET', body = null) {
     const headers = {
         'Content-Type': 'application/json',
-        'X-Init-Data': window.Telegram?.WebApp?.initData || '',
-        'Bypass-Tunnel-Reminder': 'true'
+        'X-Init-Data': window.Telegram?.WebApp?.initData || ''
     };
 
     const options = { method, headers };
@@ -21,8 +20,20 @@ window.apiCall = async function(endpoint, method = 'GET', body = null) {
         options.body = JSON.stringify(body);
     }
 
-    const res = await fetch(endpoint, options);
-    return await res.json();
+    try {
+        const res = await fetch(endpoint, options);
+        let data = null;
+        try {
+            data = await res.json();
+        } catch (jsonErr) {
+            console.warn("apiCall failed to parse JSON response:", jsonErr);
+            return { success: false, error: `Ответ сервера (${res.status})` };
+        }
+        return data;
+    } catch (netErr) {
+        console.error("apiCall network error:", netErr);
+        throw netErr;
+    }
 };
 
 window.showToast = function(msg) {
@@ -324,17 +335,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 const res = await window.apiCall('/api/withdraw', 'POST', { amount, address, method });
-                if (res.success) {
+                if (res && res.success) {
                     window.sound.playWin();
-                    window.updateUserBalance(res.new_balance);
-                    window.showToast(`✅ ${res.message}`);
+                    if (res.new_balance !== undefined) {
+                        window.updateUserBalance(res.new_balance);
+                    }
+                    window.showToast(`✅ ${res.message || "Заявка на вывод создана!"}`);
                     addressInput.value = '';
                     loadWithdrawalHistory();
                 } else {
-                    window.showToast(res.error || "Ошибка вывода");
+                    const errMsg = (res && res.error) ? res.error : "Ошибка вывода";
+                    window.showToast(`❌ ${errMsg}`);
                 }
             } catch (e) {
-                window.showToast("Ошибка сети при выводе");
+                console.error("Withdrawal error:", e);
+                window.showToast("Ошибка сети при выводе. Попробуйте еще раз.");
             } finally {
                 btnSubmitWithdraw.disabled = false;
                 btnSubmitWithdraw.textContent = "СОЗДАТЬ ЗАЯВКУ НА ВЫВОД";

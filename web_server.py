@@ -41,7 +41,7 @@ from game_logic import (
     cash_out_storm,
     active_storm_sessions,
 )
-from bot import create_stars_invoice_link
+from bot import create_stars_invoice_link, notify_admin_withdrawal
 
 logger = logging.getLogger(__name__)
 
@@ -75,8 +75,8 @@ def json_response(data: dict, status: int = 200) -> web.Response:
         status=status,
         headers={
             "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Init-Data",
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS"
         }
     )
 
@@ -87,8 +87,8 @@ async def handle_options(request: web.Request) -> web.Response:
         status=204,
         headers={
             "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Init-Data",
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS"
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS"
         }
     )
 
@@ -493,26 +493,54 @@ async def api_sell_all_user_gifts(request: web.Request) -> web.Response:
 
 # --- WITHDRAWALS (ВЫВОД СРЕДСТВ) ---
 async def api_create_withdrawal(request: web.Request) -> web.Response:
-    user = await get_request_user(request)
-    data = await request.json()
-    amount = int(data.get("amount", 0))
-    address = str(data.get("address", "")).strip()
-    method = str(data.get("method", "Telegram Stars")).strip()
+    try:
+        user = await get_request_user(request)
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
 
-    if amount < 100:
-        return json_response({"success": False, "error": "Минимальная сумма вывода 100 ⭐️"}, 400)
-    if not address:
-        return json_response({"success": False, "error": "Укажите адрес или username для вывода"}, 400)
+        try:
+            amount = int(data.get("amount", 0))
+        except (ValueError, TypeError):
+            amount = 0
 
-    ok, new_bal, msg = await create_withdrawal(user["telegram_id"], amount, address, method)
-    if not ok:
-        return json_response({"success": False, "error": msg}, 400)
+        address = str(data.get("address", "")).strip()
+        method = str(data.get("method", "Telegram Stars")).strip()
 
-    return json_response({
-        "success": True,
-        "message": msg,
-        "new_balance": new_bal
-    })
+        if amount < 100:
+            return json_response({"success": False, "error": "Минимальная сумма вывода — 100 ⭐️"}, 200)
+        if not address:
+            return json_response({"success": False, "error": "Укажите адрес или username для вывода"}, 200)
+
+        ok, new_bal, msg, wid = await create_withdrawal(user["telegram_id"], amount, address, method)
+        if not ok:
+            return json_response({"success": False, "error": msg, "new_balance": new_bal}, 200)
+
+        # Notify Telegram Admin (@ankisolom) in real-time
+        try:
+            await notify_admin_withdrawal({
+                "withdrawal_id": wid,
+                "telegram_id": user["telegram_id"],
+                "username": user.get("username", ""),
+                "first_name": user.get("first_name", "Игрок"),
+                "amount": amount,
+                "method": method,
+                "address": address,
+                "balance": new_bal
+            })
+        except Exception as notify_err:
+            logger.error("Failed to notify admin of withdrawal: %s", notify_err)
+
+        return json_response({
+            "success": True,
+            "message": msg,
+            "new_balance": new_bal,
+            "withdrawal_id": wid
+        })
+    except Exception as e:
+        logger.exception("api_create_withdrawal uncaught exception: %s", e)
+        return json_response({"success": False, "error": f"Ошибка сервера: {str(e)}"}, 500)
 
 async def api_get_withdrawals(request: web.Request) -> web.Response:
     user = await get_request_user(request)

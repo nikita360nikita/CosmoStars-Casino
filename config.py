@@ -25,6 +25,11 @@ if not WEB_APP_URL or "localhost" in WEB_APP_URL:
 # Database path
 DB_PATH = BASE_DIR / "casino.db"
 
+# Admin & Support configuration
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "ankisolom").lstrip("@")
+ADMIN_SUPPORT_URL = f"https://t.me/{ADMIN_USERNAME}"
+ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID", "").strip()
+
 # House edge & Game configs
 HOUSE_EDGE = 0.10  # 10%
 INITIAL_DEMO_BALANCE = 0  # 0 starting stars
