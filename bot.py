@@ -63,10 +63,13 @@ async def check_channel_subscription(user_id: int) -> bool:
         return True
 
 def get_sub_keyboard() -> InlineKeyboardMarkup:
+    chan_url = (REQUIRED_CHANNEL_URL or "https://t.me/Cosm0Casino_channel").strip()
+    if not chan_url.startswith("http"):
+        chan_url = f"https://t.me/{chan_url.lstrip('@')}"
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(text="📢 Подписаться на канал", url=REQUIRED_CHANNEL_URL)
+                InlineKeyboardButton(text="📢 Подписаться на канал", url=chan_url)
             ],
             [
                 InlineKeyboardButton(text="🔄 Проверить подписку", callback_data="check_sub")
@@ -96,23 +99,34 @@ def get_policy_read_keyboard() -> InlineKeyboardMarkup:
         ]
     )
 
+def is_valid_webapp_url(url: str) -> bool:
+    """Checks whether URL can be used in WebAppInfo (must be direct HTTPS and not a t.me link)."""
+    if not url:
+        return False
+    u = url.strip().lower()
+    return u.startswith("https://") and "t.me/" not in u
+
 def get_main_keyboard(webapp_url: str, is_admin_user: bool = False) -> InlineKeyboardMarkup:
-    is_https = bool(webapp_url and webapp_url.strip().startswith("https://"))
-    if is_https:
+    url_str = (webapp_url or "").strip()
+    if is_valid_webapp_url(url_str):
         top_button = InlineKeyboardButton(
             text="🎮 ИГРАТЬ",
-            web_app=WebAppInfo(url=webapp_url.strip())
+            web_app=WebAppInfo(url=url_str)
         )
-    elif webapp_url and (webapp_url.startswith("https://") or "t.me/" in webapp_url):
+    elif url_str.startswith("http://") or url_str.startswith("https://") or "t.me/" in url_str.lower():
         top_button = InlineKeyboardButton(
             text="🎮 ИГРАТЬ",
-            url=webapp_url.strip()
+            url=url_str
         )
     else:
         top_button = InlineKeyboardButton(
             text="🎮 ИГРАТЬ",
             callback_data="open_app_info"
         )
+    
+    support_user = (ADMIN_USERNAME or "ankisolom").strip().lstrip("@")
+    support_link = f"https://t.me/{support_user}"
+
     rows = [
         [top_button],
         [
@@ -128,7 +142,7 @@ def get_main_keyboard(webapp_url: str, is_admin_user: bool = False) -> InlineKey
             InlineKeyboardButton(text="📜 Правила / О боте", callback_data="about_info")
         ],
         [
-            InlineKeyboardButton(text="💬 Поддержка", url=ADMIN_SUPPORT_URL)
+            InlineKeyboardButton(text="💬 Поддержка", url=support_link)
         ]
     ]
     if is_admin_user:
@@ -256,7 +270,7 @@ async def handle_start(message: types.Message):
         return
 
     # 3. Everything is verified -> Open Main Menu
-    if WEB_APP_URL and WEB_APP_URL.startswith("https://"):
+    if is_valid_webapp_url(WEB_APP_URL):
         try:
             await bot.set_chat_menu_button(
                 chat_id=message.chat.id,
@@ -343,7 +357,7 @@ async def handle_accept_terms(callback: types.CallbackQuery):
 
     await callback.answer("✅ Условия соглашения приняты!")
 
-    if WEB_APP_URL and WEB_APP_URL.startswith("https://"):
+    if is_valid_webapp_url(WEB_APP_URL):
         try:
             await bot.set_chat_menu_button(
                 chat_id=callback.message.chat.id,
@@ -450,11 +464,12 @@ async def handle_my_gifts(callback: types.CallbackQuery):
             text += f"• {g['gift_icon']} <b>{g['gift_name']}</b> (<code>#{g['serial_number']}</code>) — <b>{g['stars_value']}</b> ⭐️\n"
         text += f"\n💰 <b>Общая ценность:</b> <code>{total_val}</code> ⭐️"
 
-    open_app_btn = (
-        InlineKeyboardButton(text="🎰 Открыть в Mini App", web_app=WebAppInfo(url=WEB_APP_URL))
-        if WEB_APP_URL and WEB_APP_URL.startswith("https://")
-        else InlineKeyboardButton(text="🎰 Открыть в Mini App", callback_data="open_app_info")
-    )
+    if is_valid_webapp_url(WEB_APP_URL):
+        open_app_btn = InlineKeyboardButton(text="🎰 Открыть в Mini App", web_app=WebAppInfo(url=WEB_APP_URL.strip()))
+    elif WEB_APP_URL and (WEB_APP_URL.startswith("http") or "t.me/" in WEB_APP_URL.lower()):
+        open_app_btn = InlineKeyboardButton(text="🎰 Открыть в Mini App", url=WEB_APP_URL.strip())
+    else:
+        open_app_btn = InlineKeyboardButton(text="🎰 Открыть в Mini App", callback_data="open_app_info")
 
     await callback.answer()
     await callback.message.edit_text(
