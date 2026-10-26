@@ -22,6 +22,11 @@ from database import (
     consume_user_gift,
     create_withdrawal,
     get_user_withdrawals,
+    is_admin,
+    get_casino_stats,
+    get_pending_withdrawals,
+    get_withdrawal_by_id,
+    update_withdrawal_status,
 )
 from game_logic import (
     CASES_CATALOG,
@@ -132,9 +137,11 @@ async def api_get_user(request: web.Request) -> web.Response:
     user = await get_request_user(request)
     history = await get_user_history(user["telegram_id"], limit=10)
     gifts = await get_user_gifts(user["telegram_id"], include_sold=False)
+    user_dict = dict(user)
+    user_dict["is_admin"] = await is_admin(user["telegram_id"], user.get("username"))
     return json_response({
         "success": True,
-        "user": user,
+        "user": user_dict,
         "history": history,
         "gifts_count": len(gifts),
         "gifts_value": sum(g["stars_value"] for g in gifts)
@@ -868,6 +875,49 @@ async def api_demo_add_stars(request: web.Request) -> web.Response:
         "new_balance": new_balance
     })
 
+async def api_admin_get_stats(request: web.Request) -> web.Response:
+    user = await get_request_user(request)
+    if not await is_admin(user["telegram_id"], user.get("username")):
+        return json_response({"success": False, "error": "Доступ разрешен только администраторам"}, 403)
+    stats = await get_casino_stats()
+    return json_response({"success": True, "stats": stats})
+
+async def api_admin_get_withdrawals(request: web.Request) -> web.Response:
+    user = await get_request_user(request)
+    if not await is_admin(user["telegram_id"], user.get("username")):
+        return json_response({"success": False, "error": "Доступ разрешен только администраторам"}, 403)
+    pending = await get_pending_withdrawals(limit=30)
+    return json_response({"success": True, "withdrawals": pending})
+
+async def api_admin_withdraw_action(request: web.Request) -> web.Response:
+    user = await get_request_user(request)
+    if not await is_admin(user["telegram_id"], user.get("username")):
+        return json_response({"success": False, "error": "Доступ разрешен только администраторам"}, 403)
+
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    wid = int(data.get("withdrawal_id", 0))
+    action = str(data.get("action", "")).strip().lower()
+
+    w = await get_withdrawal_by_id(wid)
+    if not w:
+        return json_response({"success": False, "error": "Заявка не найдена"}, 404)
+    if w["status"] != "pending":
+        return json_response({"success": False, "error": f"Заявка уже в статусе: {w['status']}"}, 400)
+
+    if action == "approve":
+        await update_withdrawal_status(wid, "completed")
+        return json_response({"success": True, "message": f"Заявка #{wid} успешно одобрена!"})
+    elif action == "reject":
+        await update_withdrawal_status(wid, "rejected")
+        await change_balance(w["telegram_id"], w["amount"], "withdrawal_refund", f"Возврат по отклоненной заявке #{wid}: +{w['amount']} XTR")
+        return json_response({"success": True, "message": f"Заявка #{wid} отклонена, звёзды возвращены игроку."})
+
+    return json_response({"success": False, "error": "Неизвестное действие"}, 400)
+
 def create_web_app() -> web.Application:
     app = web.Application()
     
@@ -881,6 +931,11 @@ def create_web_app() -> web.Application:
     app.router.add_get("/api/leaderboard", api_get_leaderboard)
     app.router.add_get("/api/cases", api_get_cases)
     app.router.add_get("/api/live_feed", api_get_live_feed)
+
+    # Admin endpoints
+    app.router.add_get("/api/admin/stats", api_admin_get_stats)
+    app.router.add_get("/api/admin/withdrawals", api_admin_get_withdrawals)
+    app.router.add_post("/api/admin/withdraw/action", api_admin_withdraw_action)
 
     # Gifts inventory endpoints
     app.router.add_get("/api/user/gifts", api_get_user_gifts)

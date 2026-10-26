@@ -16,7 +16,10 @@
                 <div class="user-avatar" id="user-avatar-text">⭐️</div>
                 <div class="user-details">
                     <span class="user-name" id="user-display-name">Загрузка...</span>
-                    <span class="user-tag" id="user-display-tag">@player</span>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span class="user-tag" id="user-display-tag">@player</span>
+                        <span id="user-admin-badge" style="display: none; font-size: 0.65rem; font-weight: 700; background: linear-gradient(135deg, #f59e0b, #ef4444); color: #fff; padding: 2px 7px; border-radius: 6px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);" title="Открыть панель администратора">👑 ADMIN</span>
+                    </div>
                 </div>
             </div>
             <div class="header-actions">
@@ -659,6 +662,53 @@
                 <div id="win-modal-sub" style="font-size: 0.9rem; color: var(--text-muted);">Выигрыш зачислен на баланс</div>
                 <button class="btn-action btn-green" style="margin-top: 10px;" onclick="document.getElementById('modal-win').classList.remove('active')">
                     ОТЛИЧНО!
+                </button>
+            </div>
+        </div>
+
+        <!-- MODAL: Админ-панель (Admin Dashboard) -->
+        <div class="modal-overlay" id="modal-admin">
+            <div class="modal-card" style="max-width: 440px;">
+                <button class="modal-close-btn">&times;</button>
+                <div class="modal-title" style="color: #f59e0b; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span>👑</span> Панель администратора
+                </div>
+                <p style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-bottom: 12px;">
+                    Управление казино и заявками на вывод (@child_trauma & @ankisolom)
+                </p>
+
+                <!-- Metrics Grid -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px;">
+                    <div style="background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 10px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.08);">
+                        <div style="font-size: 0.72rem; color: var(--text-muted);">👥 Всего игроков</div>
+                        <div id="admin-stat-users" style="font-size: 1.15rem; font-weight: 800; color: #fff; margin-top: 2px;">0</div>
+                    </div>
+                    <div style="background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 10px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.08);">
+                        <div style="font-size: 0.72rem; color: var(--text-muted);">⭐️ Касса игроков</div>
+                        <div id="admin-stat-balance" style="font-size: 1.15rem; font-weight: 800; color: #f59e0b; margin-top: 2px;">0 ⭐️</div>
+                    </div>
+                    <div style="background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 10px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.08);">
+                        <div style="font-size: 0.72rem; color: var(--text-muted);">⏳ Заявок в очереди</div>
+                        <div id="admin-stat-pending" style="font-size: 1.15rem; font-weight: 800; color: #3b82f6; margin-top: 2px;">0</div>
+                    </div>
+                    <div style="background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 10px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.08);">
+                        <div style="font-size: 0.72rem; color: var(--text-muted);">✅ Выплачено</div>
+                        <div id="admin-stat-paid" style="font-size: 1.15rem; font-weight: 800; color: #10b981; margin-top: 2px;">0 ⭐️</div>
+                    </div>
+                </div>
+
+                <!-- Pending Withdrawals List -->
+                <div style="font-size: 0.85rem; font-weight: 700; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                    <span>Очередь выплат:</span>
+                    <button id="btn-admin-refresh-list" style="background: none; border: none; color: #a78bfa; font-size: 0.78rem; cursor: pointer; text-decoration: underline;">🔄 Обновить</button>
+                </div>
+
+                <div id="admin-withdrawals-list" style="max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
+                    <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 16px;">Загрузка заявок...</div>
+                </div>
+
+                <button class="btn-action btn-purple" onclick="document.getElementById('modal-admin').classList.remove('active')" style="padding: 10px; font-size: 0.85rem;">
+                    ЗАКРЫТЬ ПАНЕЛЬ
                 </button>
             </div>
         </div>

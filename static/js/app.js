@@ -357,6 +357,109 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 3.6. Admin Dashboard Handlers
+    const adminBadgeBtn = document.getElementById('user-admin-badge');
+    const modalAdmin = document.getElementById('modal-admin');
+    const btnAdminRefresh = document.getElementById('btn-admin-refresh-list');
+
+    async function loadAdminData() {
+        if (!modalAdmin) return;
+        try {
+            const statsRes = await window.apiCall('/api/admin/stats', 'GET');
+            if (statsRes.success && statsRes.stats) {
+                const s = statsRes.stats;
+                const elUsers = document.getElementById('admin-stat-users');
+                const elBal = document.getElementById('admin-stat-balance');
+                const elPend = document.getElementById('admin-stat-pending');
+                const elPaid = document.getElementById('admin-stat-paid');
+
+                if (elUsers) elUsers.textContent = Number(s.total_users).toLocaleString();
+                if (elBal) elBal.textContent = `${Number(s.users_balance).toLocaleString()} ⭐️`;
+                if (elPend) elPend.textContent = Number(s.pending_withdrawals_count).toLocaleString();
+                if (elPaid) elPaid.textContent = `${Number(s.completed_withdrawals_sum).toLocaleString()} ⭐️`;
+            }
+
+            const withRes = await window.apiCall('/api/admin/withdrawals', 'GET');
+            const listEl = document.getElementById('admin-withdrawals-list');
+            if (listEl && withRes.success) {
+                if (!withRes.withdrawals || withRes.withdrawals.length === 0) {
+                    listEl.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 14px;">✅ Нет активных заявок</div>';
+                } else {
+                    listEl.innerHTML = '';
+                    withRes.withdrawals.forEach(w => {
+                        const item = document.createElement('div');
+                        item.style.cssText = 'background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px;';
+                        const player = w.username ? `@${w.username}` : `ID ${w.telegram_id}`;
+                        item.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
+                                <div><b>#${w.id}</b> | <b>${player}</b></div>
+                                <div style="color: #f59e0b; font-weight: 700;">${w.amount} ⭐️</div>
+                            </div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">
+                                ${w.method}: <code style="color: #fff;">${w.address}</code>
+                            </div>
+                            <div style="display: flex; gap: 6px; margin-top: 4px;">
+                                <button class="btn-adm-appr" data-id="${w.id}" style="flex: 1; padding: 5px; background: #10b981; color: #fff; border: none; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">✅ Одобрить</button>
+                                <button class="btn-adm-rejc" data-id="${w.id}" style="flex: 1; padding: 5px; background: #ef4444; color: #fff; border: none; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">❌ Отклонить</button>
+                            </div>
+                        `;
+                        listEl.appendChild(item);
+                    });
+
+                    // Wire action buttons
+                    listEl.querySelectorAll('.btn-adm-appr').forEach(b => {
+                        b.addEventListener('click', async () => {
+                            b.disabled = true;
+                            b.textContent = '...';
+                            const wid = b.dataset.id;
+                            const res = await window.apiCall('/api/admin/withdraw/action', 'POST', { withdrawal_id: wid, action: 'approve' });
+                            if (res.success) {
+                                window.showToast(`✅ Заявка #${wid} выплачена!`);
+                                loadAdminData();
+                            } else {
+                                window.showToast(res.error || 'Ошибка');
+                                b.disabled = false;
+                            }
+                        });
+                    });
+
+                    listEl.querySelectorAll('.btn-adm-rejc').forEach(b => {
+                        b.addEventListener('click', async () => {
+                            b.disabled = true;
+                            b.textContent = '...';
+                            const wid = b.dataset.id;
+                            const res = await window.apiCall('/api/admin/withdraw/action', 'POST', { withdrawal_id: wid, action: 'reject' });
+                            if (res.success) {
+                                window.showToast(`❌ Заявка #${wid} отклонена (возврат)`);
+                                loadAdminData();
+                            } else {
+                                window.showToast(res.error || 'Ошибка');
+                                b.disabled = false;
+                            }
+                        });
+                    });
+                }
+            }
+        } catch (err) {
+            console.error("Admin load error:", err);
+        }
+    }
+
+    if (adminBadgeBtn && modalAdmin) {
+        adminBadgeBtn.addEventListener('click', () => {
+            window.sound.playClick();
+            modalAdmin.classList.add('active');
+            loadAdminData();
+        });
+    }
+
+    if (btnAdminRefresh) {
+        btnAdminRefresh.addEventListener('click', () => {
+            window.sound.playClick();
+            loadAdminData();
+        });
+    }
+
     // 4. Tab Navigation
     const navItems = document.querySelectorAll('.nav-item');
     const tabViews = document.querySelectorAll('.tab-view');
@@ -413,6 +516,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (badgeEl && res.gifts_count > 0) {
                     badgeEl.textContent = res.gifts_count;
                     badgeEl.style.display = 'flex';
+                }
+
+                // Show Admin Badge if user is administrator (@child_trauma / @ankisolom)
+                const adminBadge = document.getElementById('user-admin-badge');
+                if (adminBadge) {
+                    if (res.user.is_admin) {
+                        adminBadge.style.display = 'inline-block';
+                    } else {
+                        adminBadge.style.display = 'none';
+                    }
                 }
             }
         } catch (e) {

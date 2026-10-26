@@ -19,7 +19,8 @@ from config import (
     REQUIRED_CHANNEL_URL,
     ADMIN_USERNAME,
     ADMIN_SUPPORT_URL,
-    ADMIN_CHAT_ID,
+    ADMIN_USERNAMES,
+    ADMIN_CHAT_IDS,
 )
 from database import (
     accept_user_terms,
@@ -34,7 +35,9 @@ from database import (
     update_withdrawal_status,
     get_pending_withdrawals,
     save_admin_chat_id,
-    get_admin_chat_id,
+    get_all_admin_chat_ids,
+    is_admin,
+    get_casino_stats,
 )
 
 logger = logging.getLogger(__name__)
@@ -93,7 +96,7 @@ def get_policy_read_keyboard() -> InlineKeyboardMarkup:
         ]
     )
 
-def get_main_keyboard(webapp_url: str) -> InlineKeyboardMarkup:
+def get_main_keyboard(webapp_url: str, is_admin_user: bool = False) -> InlineKeyboardMarkup:
     is_https = bool(webapp_url and webapp_url.strip().startswith("https://"))
     if is_https:
         top_button = InlineKeyboardButton(
@@ -110,26 +113,29 @@ def get_main_keyboard(webapp_url: str) -> InlineKeyboardMarkup:
             text="🎮 ИГРАТЬ",
             callback_data="open_app_info"
         )
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [top_button],
-            [
-                InlineKeyboardButton(text="⭐️ Пополнить Звёзды", callback_data="buy_stars"),
-                InlineKeyboardButton(text="↗️ Вывод средств", callback_data="withdraw_info")
-            ],
-            [
-                InlineKeyboardButton(text="🎒 Мои Подарки", callback_data="my_gifts"),
-                InlineKeyboardButton(text="💰 Баланс", callback_data="check_balance")
-            ],
-            [
-                InlineKeyboardButton(text="🏆 Топ игроков", callback_data="leaderboard"),
-                InlineKeyboardButton(text="📜 Правила / О боте", callback_data="about_info")
-            ],
-            [
-                InlineKeyboardButton(text="💬 Поддержка", url=ADMIN_SUPPORT_URL)
-            ]
+    rows = [
+        [top_button],
+        [
+            InlineKeyboardButton(text="⭐️ Пополнить Звёзды", callback_data="buy_stars"),
+            InlineKeyboardButton(text="↗️ Вывод средств", callback_data="withdraw_info")
+        ],
+        [
+            InlineKeyboardButton(text="🎒 Мои Подарки", callback_data="my_gifts"),
+            InlineKeyboardButton(text="💰 Баланс", callback_data="check_balance")
+        ],
+        [
+            InlineKeyboardButton(text="🏆 Топ игроков", callback_data="leaderboard"),
+            InlineKeyboardButton(text="📜 Правила / О боте", callback_data="about_info")
+        ],
+        [
+            InlineKeyboardButton(text="💬 Поддержка", url=ADMIN_SUPPORT_URL)
         ]
-    )
+    ]
+    if is_admin_user:
+        rows.append([
+            InlineKeyboardButton(text="👑 Панель администратора", callback_data="admin_panel_open")
+        ])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 def get_deposit_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
@@ -174,7 +180,8 @@ async def send_main_menu(message_or_callback, user, db_user=None, is_edit=False)
         f"<i>Нажми кнопку ниже, чтобы запустить игру:</i>"
     )
 
-    markup = get_main_keyboard(WEB_APP_URL)
+    is_adm = await is_admin(user.id, getattr(user, "username", None))
+    markup = get_main_keyboard(WEB_APP_URL, is_admin_user=is_adm)
     if is_edit and isinstance(message_or_callback, types.CallbackQuery):
         try:
             await message_or_callback.message.edit_text(
@@ -208,17 +215,19 @@ async def handle_start(message: types.Message):
         first_name=user.first_name or "Игрок"
     )
 
-    # 0. Check if user is the Admin (@ankisolom)
-    if user.username and user.username.lower() == ADMIN_USERNAME.lower():
+    # 0. Check if user is an Admin (@ankisolom, @child_trauma)
+    if await is_admin(user.id, user.username):
         await save_admin_chat_id(user.id)
-        logger.info("Admin @%s connected! Chat ID: %s", user.username, user.id)
+        logger.info("Admin @%s (%s) connected!", user.username, user.id)
         pending = await get_pending_withdrawals(limit=10)
+        admin_greet = (
+            f"👑 <b>Панель администратора: @{user.username or user.id}</b>\n\n"
+            f"Вам предоставлен полный доступ к управлению казино и выплатам.\n"
+            f"Ожидающих заявок на вывод: <b>{len(pending)}</b>.\n\n"
+            f"💡 <i>Используйте команду /admin для вызова статистики и управления.</i>"
+        )
+        await message.answer(admin_greet, parse_mode="HTML")
         if pending:
-            await message.answer(
-                f"👑 <b>Панель администратора: @{user.username}</b>\n\n"
-                f"У вас <b>{len(pending)}</b> новых заявок на вывод средств! Отправляем подробности ниже ⬇️",
-                parse_mode="HTML"
-            )
             for w in pending:
                 await send_admin_withdrawal_card(user.id, w)
 
@@ -637,21 +646,29 @@ async def send_admin_withdrawal_card(chat_id: int, w: dict):
         logger.error("Could not send admin withdrawal card to chat %s: %s", chat_id, e)
 
 async def notify_admin_withdrawal(data: dict):
-    """Notifies admin (@ankisolom) in real-time when a player submits a withdrawal request."""
+    """Notifies all configured admins in real-time when a player submits a withdrawal request."""
     if not bot:
         logger.warning("Bot instance unavailable; skipping withdrawal admin notification.")
         return
 
-    admin_chat_id = await get_admin_chat_id()
-    if not admin_chat_id:
-        logger.warning("Admin chat ID not yet discovered (admin @%s hasn't pressed /start). Queued.", ADMIN_USERNAME)
+    admin_ids = await get_all_admin_chat_ids()
+    if not admin_ids:
+        logger.warning("No admin chat IDs discovered yet. Queued.")
         return
 
-    await send_admin_withdrawal_card(admin_chat_id, data)
+    for cid in admin_ids:
+        try:
+            await send_admin_withdrawal_card(cid, data)
+        except Exception as e:
+            logger.error("Failed to deliver withdrawal card to admin %s: %s", cid, e)
 
 @dp.callback_query(F.data.startswith("adm_appr_"))
 async def handle_admin_approve(callback: types.CallbackQuery):
     try:
+        if not await is_admin(callback.from_user.id, callback.from_user.username):
+            await callback.answer("❌ Доступно только администраторам проекта!", show_alert=True)
+            return
+
         wid_str = callback.data.split("_")[-1]
         if not wid_str.isdigit():
             await callback.answer("Некорректный ID заявки", show_alert=True)
@@ -699,6 +716,10 @@ async def handle_admin_approve(callback: types.CallbackQuery):
 @dp.callback_query(F.data.startswith("adm_rejc_"))
 async def handle_admin_reject(callback: types.CallbackQuery):
     try:
+        if not await is_admin(callback.from_user.id, callback.from_user.username):
+            await callback.answer("❌ Доступно только администраторам проекта!", show_alert=True)
+            return
+
         wid_str = callback.data.split("_")[-1]
         if not wid_str.isdigit():
             await callback.answer("Некорректный ID заявки", show_alert=True)
@@ -750,3 +771,102 @@ async def handle_admin_reject(callback: types.CallbackQuery):
     except Exception as e:
         logger.exception("Error handling admin rejection: %s", e)
         await callback.answer("Ошибка при обработке", show_alert=True)
+
+# --- ADMIN PANEL COMMANDS & HANDLERS ---
+
+@dp.message(Command("admin"))
+async def handle_admin_command(message: types.Message):
+    user = message.from_user
+    if not await is_admin(user.id, user.username):
+        await message.answer("❌ У вас нет доступа к панели администратора.")
+        return
+
+    await save_admin_chat_id(user.id)
+    stats = await get_casino_stats()
+    text = (
+        f"👑 <b>ПАНЕЛЬ АДМИНИСТРАТОРА CASINO</b>\n"
+        f"👤 <b>Администратор:</b> @{user.username or user.id}\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        f"👥 <b>Всего игроков:</b> <code>{stats['total_users']}</code>\n"
+        f"⭐️ <b>Баланс игроков в кассе:</b> <code>{stats['users_balance']}</code> ⭐️\n"
+        f"⏳ <b>Заявок на вывод в очереди:</b> <b>{stats['pending_withdrawals_count']}</b> ({stats['pending_withdrawals_sum']} ⭐️)\n"
+        f"✅ <b>Успешно выплачено:</b> <code>{stats['completed_withdrawals_count']}</code> ({stats['completed_withdrawals_sum']} ⭐️)\n"
+        f"💳 <b>Пополнений Stars (всего):</b> <code>{stats['total_deposits_count']}</code> ({stats['total_deposits_sum']} ⭐️)\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "<i>Действия:</i>"
+    )
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=f"📋 Заявки на вывод ({stats['pending_withdrawals_count']})", callback_data="admin_view_pending")],
+        [InlineKeyboardButton(text="🔄 Обновить статистику", callback_data="admin_refresh_stats")],
+        [InlineKeyboardButton(text="◀️ В главное меню", callback_data="back_to_menu")]
+    ])
+    await message.answer(text, parse_mode="HTML", reply_markup=markup)
+
+@dp.callback_query(F.data == "admin_panel_open")
+async def handle_admin_panel_callback(callback: types.CallbackQuery):
+    user = callback.from_user
+    if not await is_admin(user.id, user.username):
+        await callback.answer("❌ Доступ запрещен!", show_alert=True)
+        return
+    await callback.answer()
+    stats = await get_casino_stats()
+    text = (
+        f"👑 <b>ПАНЕЛЬ АДМИНИСТРАТОРА CASINO</b>\n"
+        f"👤 <b>Администратор:</b> @{user.username or user.id}\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        f"👥 <b>Всего игроков:</b> <code>{stats['total_users']}</code>\n"
+        f"⭐️ <b>Баланс игроков в кассе:</b> <code>{stats['users_balance']}</code> ⭐️\n"
+        f"⏳ <b>Заявок на вывод в очереди:</b> <b>{stats['pending_withdrawals_count']}</b> ({stats['pending_withdrawals_sum']} ⭐️)\n"
+        f"✅ <b>Успешно выплачено:</b> <code>{stats['completed_withdrawals_count']}</code> ({stats['completed_withdrawals_sum']} ⭐️)\n"
+        f"💳 <b>Пополнений Stars (всего):</b> <code>{stats['total_deposits_count']}</code> ({stats['total_deposits_sum']} ⭐️)\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "<i>Действия:</i>"
+    )
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=f"📋 Заявки на вывод ({stats['pending_withdrawals_count']})", callback_data="admin_view_pending")],
+        [InlineKeyboardButton(text="🔄 Обновить статистику", callback_data="admin_refresh_stats")],
+        [InlineKeyboardButton(text="◀️ В главное меню", callback_data="back_to_menu")]
+    ])
+    await callback.message.edit_text(text, parse_mode="HTML", reply_markup=markup)
+
+@dp.callback_query(F.data == "admin_refresh_stats")
+async def handle_admin_refresh_stats(callback: types.CallbackQuery):
+    if not await is_admin(callback.from_user.id, callback.from_user.username):
+        await callback.answer("❌ Доступ запрещен!", show_alert=True)
+        return
+    await callback.answer("🔄 Статистика обновлена!")
+    stats = await get_casino_stats()
+    text = (
+        f"👑 <b>ПАНЕЛЬ АДМИНИСТРАТОРА CASINO</b>\n"
+        f"👤 <b>Администратор:</b> @{callback.from_user.username or callback.from_user.id}\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        f"👥 <b>Всего игроков:</b> <code>{stats['total_users']}</code>\n"
+        f"⭐️ <b>Баланс игроков в кассе:</b> <code>{stats['users_balance']}</code> ⭐️\n"
+        f"⏳ <b>Заявок на вывод в очереди:</b> <b>{stats['pending_withdrawals_count']}</b> ({stats['pending_withdrawals_sum']} ⭐️)\n"
+        f"✅ <b>Успешно выплачено:</b> <code>{stats['completed_withdrawals_count']}</code> ({stats['completed_withdrawals_sum']} ⭐️)\n"
+        f"💳 <b>Пополнений Stars (всего):</b> <code>{stats['total_deposits_count']}</code> ({stats['total_deposits_sum']} ⭐️)\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "<i>Действия:</i>"
+    )
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=f"📋 Заявки на вывод ({stats['pending_withdrawals_count']})", callback_data="admin_view_pending")],
+        [InlineKeyboardButton(text="🔄 Обновить статистику", callback_data="admin_refresh_stats")],
+        [InlineKeyboardButton(text="◀️ В главное меню", callback_data="back_to_menu")]
+    ])
+    try:
+        await callback.message.edit_text(text, parse_mode="HTML", reply_markup=markup)
+    except Exception:
+        pass
+
+@dp.callback_query(F.data == "admin_view_pending")
+async def handle_admin_view_pending(callback: types.CallbackQuery):
+    if not await is_admin(callback.from_user.id, callback.from_user.username):
+        await callback.answer("❌ Доступ запрещен!", show_alert=True)
+        return
+    pending = await get_pending_withdrawals(limit=10)
+    if not pending:
+        await callback.answer("✅ Нет заявок в очереди на вывод!", show_alert=True)
+        return
+    await callback.answer(f"Отправка {len(pending)} заявок...")
+    for w in pending:
+        await send_admin_withdrawal_card(callback.message.chat.id, w)

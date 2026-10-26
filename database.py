@@ -340,31 +340,70 @@ async def set_setting(key: str, value: str):
         await db.execute("INSERT OR REPLACE INTO bot_settings (key, value) VALUES (?, ?)", (key, str(value)))
         await db.commit()
 
-async def get_admin_chat_id() -> int | None:
-    # 1. Check environment variable
-    env_id = os.getenv("ADMIN_CHAT_ID", "").strip()
-    if env_id and env_id.isdigit():
-        return int(env_id)
+async def is_admin(telegram_id: int = None, username: str = None) -> bool:
+    """Checks whether a given telegram_id or username belongs to an administrator."""
+    from config import ADMIN_USERNAMES, ADMIN_CHAT_IDS
+    if telegram_id and telegram_id in ADMIN_CHAT_IDS:
+        return True
+    if username and username.lower().lstrip("@") in ADMIN_USERNAMES:
+        return True
+    if telegram_id:
+        user = await get_user(telegram_id)
+        if user and user.get("username") and user["username"].lower() in ADMIN_USERNAMES:
+            return True
+    return False
 
-    # 2. Check bot_settings table
-    saved = await get_setting("admin_chat_id")
-    if saved and saved.isdigit():
-        return int(saved)
+async def get_all_admin_chat_ids() -> list[int]:
+    """Returns all known Telegram chat IDs of configured administrators."""
+    from config import ADMIN_USERNAMES, ADMIN_CHAT_IDS
+    ids = set(ADMIN_CHAT_IDS)
+    saved = await get_setting("admin_chat_ids")
+    if saved:
+        for s in saved.split(","):
+            if s.strip().isdigit():
+                ids.add(int(s.strip()))
 
-    # 3. Lookup user with username 'ankisolom'
-    admin_uname = os.getenv("ADMIN_USERNAME", "ankisolom").lstrip("@").lower()
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
-        async with db.execute("SELECT telegram_id FROM users WHERE LOWER(username) = ? LIMIT 1", (admin_uname,)) as cursor:
-            row = await cursor.fetchone()
-            if row:
-                cid = row["telegram_id"]
-                await set_setting("admin_chat_id", str(cid))
-                return cid
-    return None
+        for uname in ADMIN_USERNAMES:
+            async with db.execute("SELECT telegram_id FROM users WHERE LOWER(username) = ? LIMIT 1", (uname.lower(),)) as cursor:
+                row = await cursor.fetchone()
+                if row:
+                    ids.add(row["telegram_id"])
+    return list(ids)
+
+async def get_admin_chat_id() -> int | None:
+    all_ids = await get_all_admin_chat_ids()
+    return all_ids[0] if all_ids else None
 
 async def save_admin_chat_id(telegram_id: int):
-    await set_setting("admin_chat_id", str(telegram_id))
+    all_ids = set(await get_all_admin_chat_ids())
+    all_ids.add(telegram_id)
+    await set_setting("admin_chat_ids", ",".join(str(i) for i in all_ids))
+
+async def get_casino_stats() -> dict:
+    """Returns aggregated high-level casino metrics for administrators."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT COUNT(*) as count, COALESCE(SUM(balance), 0) as total_bal FROM users") as cur:
+            u_row = await cur.fetchone()
+        async with db.execute("SELECT COUNT(*) as count, COALESCE(SUM(amount), 0) as total_sum FROM withdrawals WHERE status = 'pending'") as cur:
+            w_pending = await cur.fetchone()
+        async with db.execute("SELECT COUNT(*) as count, COALESCE(SUM(amount), 0) as total_sum FROM withdrawals WHERE status = 'completed'") as cur:
+            w_completed = await cur.fetchone()
+        async with db.execute("SELECT COUNT(*) as count, COALESCE(SUM(amount), 0) as total_sum FROM transactions WHERE type = 'deposit_stars'") as cur:
+            dep_row = await cur.fetchone()
+
+        return {
+            "total_users": u_row["count"] if u_row else 0,
+            "users_balance": u_row["total_bal"] if u_row else 0,
+            "pending_withdrawals_count": w_pending["count"] if w_pending else 0,
+            "pending_withdrawals_sum": w_pending["total_sum"] if w_pending else 0,
+            "completed_withdrawals_count": w_completed["count"] if w_completed else 0,
+            "completed_withdrawals_sum": w_completed["total_sum"] if w_completed else 0,
+            "total_deposits_count": dep_row["count"] if dep_row else 0,
+            "total_deposits_sum": dep_row["total_sum"] if dep_row else 0
+        }
 
 async def get_withdrawal_by_id(withdrawal_id: int) -> dict | None:
     async with aiosqlite.connect(DB_PATH) as db:
