@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>CosmoStars Casino - Telegram Gifts & Games</title>
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Top Sticky Header -->
+        <header class="app-header">
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar-text">⭐️</div>
+                <div class="user-details">
+                    <span class="user-name" id="user-display-name">Загрузка...</span>
+                    <span class="user-tag" id="user-display-tag">@player</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="balance-pill btn-open-deposit" title="Пополнить Stars">
+                    <span class="star-icon">⭐️</span>
+                    <span id="user-balance-val">0</span>
+                </div>
+                <button class="btn-deposit btn-open-deposit">+ Пополнить</button>
+                <button class="sound-toggle-btn" id="btn-sound-toggle" title="Звук">🔊</button>
+            </div>
+        </header>
+
+        <!-- Live Drops Marquee Ticker -->
+        <div class="live-ticker-bar">
+            <div class="ticker-label">
+                <span class="ticker-pulse"></span>
+                <span>LIVE</span>
+            </div>
+            <div class="ticker-viewport">
+                <div class="ticker-track" id="live-ticker-track">
+                    <!-- Dynamic live drops injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notifications Container -->
+        <div class="toast-container" id="toast-container"></div>
+
+        <!-- Main Content (Tabs) -->
+        <main class="main-content">
+
+            <!-- TAB 1: КЕЙСЫ С РЕАЛЬНЫМИ ПОДАРКАМИ TELEGRAM (DEFAULT) -->
+            <section class="tab-view active" id="tab-cases">
+                <!-- Cases Grid Section -->
+                <div id="cases-grid-view-wrapper">
+                    <div class="section-hero">
+                        <div class="hero-badge">🎁 ОФИЦИАЛЬНЫЕ ПОДАРКИ</div>
+                        <h2 class="hero-title">Telegram Gifts Cases</h2>
+                        <p class="hero-sub">Открывай кейсы и выбивай редкие подарки с серийными номерами!</p>
+                    </div>
+                    <div class="cases-grid" id="cases-grid-view"></div>
+                </div>
+
+                <!-- Case Opener View -->
+                <div class="card" id="case-opener-view" style="display: none; flex-direction: column;">
+                    <div class="case-opener-header">
+                        <button class="btn-back-cases" id="btn-back-to-cases">◀ Назад к кейсам</button>
+                        <span class="active-case-headline" id="active-case-title">Кейс</span>
+                    </div>
+
+                    <!-- Horizontal Roulette Viewport -->
+                    <div class="reel-viewport" id="case-reel-viewport">
+                        <div class="reel-center-marker"></div>
+                        <div class="reel-track" id="case-reel-track"></div>
+                    </div>
+
+                    <button class="btn-action btn-gold btn-large-open" id="btn-open-case-action">ОТКРЫТЬ КЕЙС</button>
+
+                    <!-- Possible Drops Preview -->
+                    <div class="case-drops-section">
+                        <div class="case-drops-title">
+                            <span>СОДЕРЖИМОЕ КЕЙСА</span>
+                            <span class="drops-hint">Шанс зависит от редкости</span>
+                        </div>
+                        <div class="case-drops-list" id="case-drops-preview"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: РАКЕТКА (CRASH) -->
+            <section class="tab-view" id="tab-crash">
+                <div class="card">
+                    <div class="card-title">
+                        <span>🚀 Ракетка (Crash)</span>
+                        <span class="card-badge-provably">PROVABLY FAIR</span>
+                    </div>
+                    <div class="crash-display">
+                        <canvas id="crash-canvas"></canvas>
+                        <div class="crash-overlay">
+                            <div class="crash-multiplier" id="crash-multiplier-text">1.00x</div>
+                            <div class="crash-status-sub" id="crash-status-sub">ГОТОВ К ВЗЛЁТУ</div>
+                        </div>
+                    </div>
+
+                    <!-- Bet controls -->
+                    <div class="bet-control-group">
+                        <div class="bet-label">
+                            <span>Размер ставки:</span>
+                            <span>Мин: 1 ⭐</span>
+                        </div>
+                        <div class="bet-input-row">
+                            <input type="number" id="crash-bet-input" value="10" min="1" step="1">
+                            <span class="currency-tag">⭐️</span>
+                        </div>
+                        <div class="quick-bet-presets">
+                            <button class="btn-preset btn-preset-crash" data-val="5">+5</button>
+                            <button class="btn-preset btn-preset-crash" data-val="10">+10</button>
+                            <button class="btn-preset btn-preset-crash" data-val="25">+25</button>
+                            <button class="btn-preset btn-preset-crash" data-val="half">1/2</button>
+                            <button class="btn-preset btn-preset-crash" data-val="2x">2X</button>
+                        </div>
+                    </div>
+
+                    <button class="btn-action btn-green" id="btn-crash-action">ВЗЛЁТ (ПОСТАВИТЬ)</button>
+                </div>
+            </section>
+
+            <!-- TAB 3: МОНЕТКА (COINFLIP) -->
+            <section class="tab-view" id="tab-coinflip">
+                <div class="card">
+                    <div class="card-title">
+                        <span>🪙 Монетка (Coinflip)</span>
+                        <span class="card-badge-multiplier">x1.95 ВЫИГРЫШ</span>
+                    </div>
+                    
+                    <div class="coin-arena">
+                        <div class="coin-wrapper">
+                            <div class="coin-inner" id="coin-inner">
+                                <div class="coin-side coin-heads">
+                                    <span class="coin-icon">🦅</span>
+                                    <span class="coin-text">ОРЁЛ</span>
+                                </div>
+                                <div class="coin-side coin-tails">
+                                    <span class="coin-icon">👑</span>
+                                    <span class="coin-text">РЕШКА</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Side selection -->
+                    <div class="coin-select-row">
+                        <button class="btn-coin-choice selected" id="btn-choice-heads">
+                            <span class="coin-choice-emoji">🦅</span>
+                            <span class="coin-choice-name">Орёл</span>
+                            <span class="coin-choice-mult">x1.95</span>
+                        </button>
+                        <button class="btn-coin-choice" id="btn-choice-tails">
+                            <span class="coin-choice-emoji">👑</span>
+                            <span class="coin-choice-name">Решка</span>
+                            <span class="coin-choice-mult">x1.95</span>
+                        </button>
+                    </div>
+
+                    <!-- Bet controls -->
+                    <div class="bet-control-group">
+                        <div class="bet-label">
+                            <span>Размер ставки:</span>
+                            <span>Выигрыш: <b id="coinflip-win-preview" style="color: var(--accent-gold);">19.5 ⭐</b></span>
+                        </div>
+                        <div class="bet-input-row">
+                            <input type="number" id="coinflip-bet-input" value="10" min="1" step="1">
+                            <span class="currency-tag">⭐️</span>
+                        </div>
+                        <div class="quick-bet-presets">
+                            <button class="btn-preset btn-preset-coinflip" data-val="5">+5</button>
+                            <button class="btn-preset btn-preset-coinflip" data-val="10">+10</button>
+                            <button class="btn-preset btn-preset-coinflip" data-val="50">+50</button>
+                            <button class="btn-preset btn-preset-coinflip" data-val="half">1/2</button>
+                            <button class="btn-preset btn-preset-coinflip" data-val="2x">2X</button>
+                        </div>
+                    </div>
+
+                    <button class="btn-action btn-gold" id="btn-coinflip-action">БРОСИТЬ МОНЕТУ</button>
+                </div>
+            </section>
+
+            <!-- TAB 4: АПГРЕЙДЕР ПОДАРКОВ (GIFTS UPGRADER) -->
+            <section class="tab-view" id="tab-upgrader">
+                <div class="card">
+                    <div class="card-title">
+                        <span>⚡ Апгрейдер Подарков</span>
+                        <span class="card-badge-multiplier" id="upgrader-mult-badge">x2.00</span>
+                    </div>
+
+                    <!-- Dual Slot Display: Source Gift -> Wheel -> Target Gift -->
+                    <div class="upgrader-slots-row">
+                        <!-- Left: Source Gift Slot -->
+                        <div class="upgrader-slot" id="slot-source">
+                            <span class="slot-badge">ИСХОДНЫЙ</span>
+                            <div class="slot-icon-box" id="slot-source-box">
+                                <img id="slot-source-img" src="" class="slot-img" style="display: none;">
+                                <span id="slot-source-emoji" class="slot-emoji">🎁</span>
+                            </div>
+                            <span class="slot-name" id="slot-source-name">Выберите подарок</span>
+                            <span class="slot-val" id="slot-source-val">0 ⭐️</span>
+                        </div>
+
+                        <!-- Center Wheel -->
+                        <div class="upgrader-wheel-container mini-wheel">
+                            <svg class="upgrader-svg" viewBox="0 0 200 200" id="upgrader-svg-wheel">
+                                <circle cx="100" cy="100" r="80" fill="#121526" stroke="#ef4444" stroke-width="2.5"/>
+                                <path id="upgrader-win-sector" d="" fill="rgba(16, 185, 129, 0.45)" stroke="#10b981" stroke-width="2.5"/>
+                            </svg>
+                            <div class="wheel-needle" id="upgrader-needle"></div>
+                            <div class="wheel-needle-center"></div>
+                            <div class="upgrader-center-info">
+                                <span class="upgrader-chance" id="upgrader-chance-val">50.0%</span>
+                                <span class="upgrader-chance-label">Шанс</span>
+                            </div>
+                        </div>
+
+                        <!-- Right: Target Gift Slot -->
+                        <div class="upgrader-slot active" id="slot-target">
+                            <span class="slot-badge slot-badge-gold">ЦЕЛЬ</span>
+                            <div class="slot-icon-box" id="slot-target-box">
+                                <img id="slot-target-img" src="https://cdn-icons-png.flaticon.com/512/3656/3656860.png" class="slot-img">
+                                <span id="slot-target-emoji" class="slot-emoji" style="display: none;">🧸</span>
+                            </div>
+                            <span class="slot-name" id="slot-target-name">Plush Bear</span>
+                            <span class="slot-val gold" id="slot-target-val">100 ⭐️</span>
+                        </div>
+                    </div>
+
+                    <!-- Step 1: Select Source Gift (from Inventory or Stars) -->
+                    <div class="upgrader-section-block">
+                        <div class="upgrader-section-header">
+                            <span>1. ЧТО УЛУЧШАЕМ:</span>
+                            <button class="btn-toggle-source" id="btn-toggle-stars-source">Ввести Stars ⭐️</button>
+                        </div>
+                        <!-- Inventory source selector -->
+                        <div class="upgrader-source-scroll" id="upgrader-inventory-sources">
+                            <!-- Injected from user's inventory gifts -->
+                        </div>
+                        <!-- Fallback Stars input (hidden by default) -->
+                        <div class="upgrader-stars-input-box" id="upgrader-stars-box" style="display: none;">
+                            <div class="bet-input-row">
+                                <input type="number" id="upgrader-stars-input" value="25" min="1" step="1">
+                                <span class="currency-tag">⭐️</span>
+                            </div>
+                            <div class="quick-bet-presets">
+                                <button class="btn-preset btn-preset-upg-stars" data-val="15">15⭐</button>
+                                <button class="btn-preset btn-preset-upg-stars" data-val="25">25⭐</button>
+                                <button class="btn-preset btn-preset-upg-stars" data-val="50">50⭐</button>
+                                <button class="btn-preset btn-preset-upg-stars" data-val="100">100⭐</button>
+                                <button class="btn-preset btn-preset-upg-stars" data-val="250">250⭐</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Select Target Gift -->
+                    <div class="upgrader-section-block">
+                        <div class="upgrader-section-header">
+                            <span>2. ВЫБЕРИТЕ ЦЕЛЬ (ЧТО ВЫИГРАТЬ):</span>
+                        </div>
+                        <div class="upgrader-target-scroll" id="upgrader-target-catalog">
+                            <!-- Injected from catalog -->
+                        </div>
+                    </div>
+
+                    <button class="btn-action btn-purple" id="btn-upgrader-action">⚡ УЛУЧШИТЬ ПОДАРОК</button>
+                </div>
+            </section>
+
+            <!-- TAB 5: ИНВЕНТАРЬ (МОИ ПОДАРКИ TELEGRAM) -->
+            <section class="tab-view" id="tab-inventory">
+                <!-- Inventory Stats Banner -->
+                <div class="inventory-stats-bar">
+                    <div class="inv-stat-item">
+                        <span class="inv-stat-label">Стоимость коллекции:</span>
+                        <span class="inv-stat-val gold" id="inventory-total-value">0 ⭐️</span>
+                    </div>
+                    <div class="inv-stat-divider"></div>
+                    <div class="inv-stat-item">
+                        <span class="inv-stat-label">Всего подарков:</span>
+                        <span class="inv-stat-val" id="inventory-count">0 шт.</span>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div class="inventory-empty-state" id="inventory-empty">
+                    <div class="empty-icon">🎒</div>
+                    <div class="empty-title">Инвентарь пуст</div>
+                    <p class="empty-desc">Открывайте кейсы с Telegram подарками, чтобы собрать свою коллекцию или продавать их за Stars!</p>
+                    <button class="btn-action btn-gold btn-empty-open" onclick="window.switchTab('cases')">ОТКРЫТЬ КЕЙС</button>
+                </div>
+
+                <!-- User Gifts Grid -->
+                <div class="inventory-grid" id="inventory-grid"></div>
+            </section>
+
+            <!-- TAB 6: ТОП И ИНФО (LEADERBOARD) -->
+            <section class="tab-view" id="tab-info">
+                <div class="card">
+                    <div class="card-title">🏆 Топ игроков по балансу</div>
+                    <div class="leaderboard-list" id="leaderboard-list-el">
+                        <div style="text-align: center; color: var(--text-muted); padding: 14px;">Загрузка рейтинга...</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">⭐️ Telegram Stars & Provably Fair</div>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+                        • Пополнение игрового баланса осуществляется официально через <b>Telegram Stars (XTR)</b>.<br>
+                        • Все подарки в кейсах соответствуют официальной коллекции Telegram с подлинными изданиями и серийными номерами.<br>
+                        • 🎲 <b>Provably Fair:</b> Каждый результат раундов генерируется криптографическим хэшем SHA-256 до начала раунда, что гарантирует абсолютную честность игры.
+                    </p>
+                </div>
+            </section>
+        </main>
+
+        <!-- Bottom Fixed Navigation -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-tab="cases">
+                <span class="nav-icon">🎁</span>
+                <span>Кейсы</span>
+            </button>
+            <button class="nav-item" data-tab="crash">
+                <span class="nav-icon">🚀</span>
+                <span>Ракетка</span>
+            </button>
+            <button class="nav-item" data-tab="coinflip">
+                <span class="nav-icon">🪙</span>
+                <span>Монетка</span>
+            </button>
+            <button class="nav-item" data-tab="upgrader">
+                <span class="nav-icon">⚡</span>
+                <span>Апгрейд</span>
+            </button>
+            <button class="nav-item" data-tab="inventory">
+                <div class="nav-icon-wrap">
+                    <span class="nav-icon">🎒</span>
+                    <span class="nav-badge" id="nav-gifts-badge" style="display: none;">0</span>
+                </div>
+                <span>Подарки</span>
+            </button>
+            <button class="nav-item" data-tab="info">
+                <span class="nav-icon">🏆</span>
+                <span>Топ</span>
+            </button>
+        </nav>
+
+        <!-- MODAL: Пополнение Stars -->
+        <div class="modal-overlay" id="modal-deposit">
+            <div class="modal-card">
+                <button class="modal-close-btn">&times;</button>
+                <div class="modal-title">⭐️ Пополнение Telegram Stars</div>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">
+                    Официальная оплата через встроенный шлюз Telegram Stars (XTR):
+                </p>
+
+                <div class="deposit-packs-grid">
+                    <div class="deposit-pack-btn" data-stars="25">
+                        <span class="deposit-pack-stars">25 ⭐️</span>
+                        <span class="deposit-pack-label">Старт</span>
+                    </div>
+                    <div class="deposit-pack-btn" data-stars="50">
+                        <span class="deposit-pack-stars">50 ⭐️</span>
+                        <span class="deposit-pack-label">Мини</span>
+                    </div>
+                    <div class="deposit-pack-btn featured" data-stars="100">
+                        <div class="pack-hot-tag">ХИТ</div>
+                        <span class="deposit-pack-stars">100 ⭐️</span>
+                        <span class="deposit-pack-label">Популярный</span>
+                    </div>
+                    <div class="deposit-pack-btn" data-stars="250">
+                        <span class="deposit-pack-stars">250 ⭐️</span>
+                        <span class="deposit-pack-label">Оптимум</span>
+                    </div>
+                    <div class="deposit-pack-btn" data-stars="500">
+                        <span class="deposit-pack-stars">500 ⭐️</span>
+                        <span class="deposit-pack-label">Профи</span>
+                    </div>
+                    <div class="deposit-pack-btn" data-stars="1000">
+                        <span class="deposit-pack-stars">1000 ⭐️</span>
+                        <span class="deposit-pack-label">VIP Босс</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: Выигрыш Подарка из Кейса (Drop Celebration) -->
+        <div class="modal-overlay" id="modal-drop-celebration">
+            <div class="modal-card drop-popup">
+                <button class="modal-close-btn">&times;</button>
+                <div class="drop-popup-glow" id="drop-popup-glow"></div>
+                
+                <div class="drop-edition-pill" id="drop-modal-serial">#1349 из 25,000</div>
+                <div class="drop-rarity-pill" id="drop-modal-rarity">EPIC</div>
+
+                <div class="drop-media-container">
+                    <img id="drop-modal-img" src="" alt="Gift" class="drop-modal-img">
+                    <div id="drop-modal-emoji" class="drop-modal-emoji">🎁</div>
+                </div>
+
+                <div class="drop-congrats-sub">ВЫ ВЫИГРАЛИ ПОДАРОК!</div>
+                <div class="drop-name-title" id="drop-modal-title">Eternal Rose</div>
+                <div class="drop-value-pill" id="drop-modal-value">⭐️ 250 Stars</div>
+
+                <div class="drop-modal-buttons">
+                    <button class="btn-action btn-green" id="btn-drop-keep" onclick="document.getElementById('modal-drop-celebration').classList.remove('active')">
+                        🎒 ОСТАВИТЬ В ИНВЕНТАРЕ
+                    </button>
+                    <button class="btn-action btn-gold" id="btn-drop-quick-sell">
+                        💰 ПРОДАТЬ ЗА СТОИМОСТЬ
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: 3D Осмотр Подарка (Inspect Gift) -->
+        <div class="modal-overlay" id="modal-inspect-gift">
+            <div class="modal-card inspect-popup">
+                <button class="modal-close-btn">&times;</button>
+                
+                <div class="inspect-media-wrap">
+                    <img id="inspect-gift-img" src="" alt="Gift" class="inspect-img">
+                    <div id="inspect-gift-emoji" class="inspect-emoji">🎁</div>
+                </div>
+
+                <div class="inspect-rarity-pill" id="inspect-gift-rarity">COMMON</div>
+                <div class="inspect-title" id="inspect-gift-title">Название подарка</div>
+                <div class="inspect-serial" id="inspect-gift-serial">#0001 из 50,000</div>
+                <p class="inspect-desc" id="inspect-gift-desc">Описание подарка Telegram</p>
+                <div class="inspect-value-pill" id="inspect-gift-value">+100 ⭐️</div>
+
+                <button class="btn-action btn-gold" id="btn-inspect-sell">
+                    ПРОДАТЬ ЗА 100 ⭐️
+                </button>
+            </div>
+        </div>
+
+        <!-- MODAL: Общий выигрыш в играх (Crash / Coinflip / Upgrader) -->
+        <div class="modal-overlay" id="modal-win">
+            <div class="modal-card win-popup">
+                <button class="modal-close-btn">&times;</button>
+                <div class="trophy-icon">🏆</div>
+                <div style="font-size: 1.3rem; font-weight: 800; color: #fff;">ПОБЕДА!</div>
+                <div class="win-popup-amount" id="win-modal-amount">+100 ⭐️</div>
+                <div id="win-modal-sub" style="font-size: 0.9rem; color: var(--text-muted);">Выигрыш зачислен на баланс</div>
+                <button class="btn-action btn-green" style="margin-top: 10px;" onclick="document.getElementById('modal-win').classList.remove('active')">
+                    ОТЛИЧНО!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Scripts -->
+    <script src="/static/js/sound.js"></script>
+    <script src="/static/js/confetti.js"></script>
+    <script src="/static/js/ticker.js"></script>
+    <script src="/static/js/inventory.js"></script>
+    <script src="/static/js/crash.js"></script>
+    <script src="/static/js/coinflip.js"></script>
+    <script src="/static/js/upgrader.js"></script>
+    <script src="/static/js/cases.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

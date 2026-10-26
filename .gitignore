@@ -1,0 +1,25 @@
+# Environment & Secrets
+.env
+
+# Binaries & Archives
+cloudflared.exe
+ngrok.exe
+ngrok.zip
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+venv/
+.venv/
+env/
+
+# Database
+casino.db
+*.sqlite
+*.sqlite3
+
+# Temporary / Scratch scripts
+scratch_blog.py
+generate_gifts_art.py

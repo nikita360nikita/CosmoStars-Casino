@@ -1,0 +1,262 @@
+import json
+import logging
+from datetime import datetime
+import aiosqlite
+from config import DB_PATH, INITIAL_DEMO_BALANCE
+
+logger = logging.getLogger(__name__)
+
+async def init_db():
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                telegram_id INTEGER PRIMARY KEY,
+                username TEXT,
+                first_name TEXT,
+                balance INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS transactions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                telegram_id INTEGER NOT NULL,
+                amount INTEGER NOT NULL,
+                type TEXT NOT NULL,
+                telegram_payment_charge_id TEXT,
+                details TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS game_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                telegram_id INTEGER NOT NULL,
+                game TEXT NOT NULL,
+                bet_amount INTEGER NOT NULL,
+                win_amount INTEGER NOT NULL,
+                multiplier REAL,
+                details TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS user_gifts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                telegram_id INTEGER NOT NULL,
+                gift_id TEXT NOT NULL,
+                gift_name TEXT NOT NULL,
+                gift_icon TEXT NOT NULL,
+                rarity TEXT NOT NULL,
+                stars_value INTEGER NOT NULL,
+                serial_number INTEGER NOT NULL,
+                total_edition INTEGER NOT NULL,
+                is_sold INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        # Safe migration for terms_accepted column
+        try:
+            await db.execute("ALTER TABLE users ADD COLUMN terms_accepted INTEGER DEFAULT 0")
+        except Exception:
+            pass
+        await db.commit()
+    logger.info("Database initialized successfully at %s", DB_PATH)
+
+async def accept_user_terms(telegram_id: int):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE users SET terms_accepted = 1 WHERE telegram_id = ?", (telegram_id,))
+        await db.commit()
+
+async def get_user_terms_accepted(telegram_id: int) -> bool:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT terms_accepted FROM users WHERE telegram_id = ?", (telegram_id,)) as cursor:
+            row = await cursor.fetchone()
+            if row:
+                return bool(row["terms_accepted"] == 1)
+            return False
+
+async def get_or_create_user(telegram_id: int, username: str = "", first_name: str = "") -> dict:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,)) as cursor:
+            row = await cursor.fetchone()
+            if row:
+                # Update username/first_name if changed
+                await db.execute(
+                    "UPDATE users SET username = ?, first_name = ?, updated_at = CURRENT_TIMESTAMP WHERE telegram_id = ?",
+                    (username, first_name, telegram_id)
+                )
+                await db.commit()
+                return dict(row)
+            
+            # New user with 0 starting stars
+            initial_bal = INITIAL_DEMO_BALANCE
+            await db.execute(
+                "INSERT INTO users (telegram_id, username, first_name, balance, terms_accepted) VALUES (?, ?, ?, ?, 0)",
+                (telegram_id, username, first_name, initial_bal)
+            )
+            if initial_bal > 0:
+                await db.execute(
+                    "INSERT INTO transactions (telegram_id, amount, type, details) VALUES (?, ?, ?, ?)",
+                    (telegram_id, initial_bal, "welcome_bonus", "Начальный демо-баланс для теста")
+                )
+            await db.commit()
+            
+            async with db.execute("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,)) as cur2:
+                new_row = await cur2.fetchone()
+                return dict(new_row)
+
+async def get_user(telegram_id: int) -> dict | None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM users WHERE telegram_id = ?", (telegram_id,)) as cursor:
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+
+async def change_balance(telegram_id: int, delta: int, tx_type: str, details: str = "", charge_id: str | None = None) -> int:
+    """Safely increments or decrements user balance with transaction record."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT balance FROM users WHERE telegram_id = ?", (telegram_id,)) as cursor:
+            row = await cursor.fetchone()
+            if not row:
+                raise ValueError("Пользователь не найден")
+            
+            current_balance = row["balance"]
+            new_balance = current_balance + delta
+            if new_balance < 0:
+                raise ValueError("Недостаточно звезд на балансе")
+
+            await db.execute(
+                "UPDATE users SET balance = ?, updated_at = CURRENT_TIMESTAMP WHERE telegram_id = ?",
+                (new_balance, telegram_id)
+            )
+            await db.execute(
+                "INSERT INTO transactions (telegram_id, amount, type, telegram_payment_charge_id, details) VALUES (?, ?, ?, ?, ?)",
+                (telegram_id, delta, tx_type, charge_id, details)
+            )
+            await db.commit()
+            return new_balance
+
+async def log_game(telegram_id: int, game: str, bet: int, win: int, multiplier: float, details: dict):
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """INSERT INTO game_history (telegram_id, game, bet_amount, win_amount, multiplier, details)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (telegram_id, game, bet, win, multiplier, json.dumps(details, ensure_ascii=False))
+        )
+        await db.commit()
+
+async def get_user_history(telegram_id: int, limit: int = 15) -> list[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM game_history WHERE telegram_id = ? ORDER BY id DESC LIMIT ?",
+            (telegram_id, limit)
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
+
+async def get_top_winners(limit: int = 10) -> list[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT telegram_id, username, first_name, balance FROM users ORDER BY balance DESC LIMIT ?",
+            (limit,)
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
+
+# --- USER GIFTS INVENTORY SYSTEM ---
+
+async def add_user_gift(
+    telegram_id: int,
+    gift_id: str,
+    gift_name: str,
+    gift_icon: str,
+    rarity: str,
+    stars_value: int,
+    serial_number: int,
+    total_edition: int
+) -> int:
+    """Stores a won Telegram gift into the user's permanent collection."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(
+            """INSERT INTO user_gifts 
+               (telegram_id, gift_id, gift_name, gift_icon, rarity, stars_value, serial_number, total_edition, is_sold)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)""",
+            (telegram_id, gift_id, gift_name, gift_icon, rarity, stars_value, serial_number, total_edition)
+        )
+        await db.commit()
+        return cursor.lastrowid
+
+async def get_user_gifts(telegram_id: int, include_sold: bool = False) -> list[dict]:
+    """Retrieves all gifts belonging to a user."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        sql = "SELECT * FROM user_gifts WHERE telegram_id = ?"
+        params = [telegram_id]
+        if not include_sold:
+            sql += " AND is_sold = 0"
+        sql += " ORDER BY id DESC"
+        async with db.execute(sql, tuple(params)) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
+
+async def sell_user_gift(gift_db_id: int, telegram_id: int) -> tuple[bool, int, str]:
+    """Sells a user's gift back to the system for Stars."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM user_gifts WHERE id = ? AND telegram_id = ?", (gift_db_id, telegram_id)) as cursor:
+            gift = await cursor.fetchone()
+            if not gift:
+                return False, 0, "Подарок не найден в вашем инвентаре"
+            if gift["is_sold"] == 1:
+                return False, 0, "Этот подарок уже продан"
+
+            stars_value = gift["stars_value"]
+            gift_name = gift["gift_name"]
+
+            # Mark as sold
+            await db.execute("UPDATE user_gifts SET is_sold = 1 WHERE id = ?", (gift_db_id,))
+            await db.commit()
+
+    # Credit balance
+    new_balance = await change_balance(
+        telegram_id=telegram_id,
+        delta=stars_value,
+        tx_type="sell_gift",
+        details=f"Продажа подарка '{gift_name}': +{stars_value} XTR"
+    )
+    return True, new_balance, f"Подарок '{gift_name}' продан за {stars_value} ⭐️!"
+
+async def consume_user_gift(gift_db_id: int, telegram_id: int) -> dict | None:
+    """Marks a user's gift as consumed/used for an upgrade attempt."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT * FROM user_gifts WHERE id = ? AND telegram_id = ? AND is_sold = 0", (gift_db_id, telegram_id)) as cur:
+            row = await cur.fetchone()
+            if not row:
+                return None
+            gift_dict = dict(row)
+            await db.execute("UPDATE user_gifts SET is_sold = 1 WHERE id = ?", (gift_db_id,))
+            await db.commit()
+            return gift_dict
+
+async def get_recent_drops(limit: int = 12) -> list[dict]:
+    """Returns recent big wins and drops for the live ticker feed."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            """SELECT g.id, g.telegram_id, g.gift_name, g.gift_icon, g.rarity, g.stars_value, g.serial_number,
+                      u.first_name, u.username, g.created_at
+               FROM user_gifts g
+               LEFT JOIN users u ON g.telegram_id = u.telegram_id
+               ORDER BY g.id DESC LIMIT ?""",
+            (limit,)
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
