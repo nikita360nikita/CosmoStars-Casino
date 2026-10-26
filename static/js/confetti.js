@@ -56,6 +56,10 @@ class ConfettiManager {
         }
     }
 
+    burst(particleCount = 60) {
+        this.fire(2200, particleCount);
+    }
+
     loop() {
         if (!this.ctx) return;
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);

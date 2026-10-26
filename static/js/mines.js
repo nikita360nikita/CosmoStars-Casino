@@ -71,7 +71,7 @@
             const tile = document.createElement("div");
             tile.className = "mines-tile";
             tile.dataset.index = i;
-            tile.innerHTML = `<div class="tile-inner"><span class="tile-icon">💎</span></div>`;
+            tile.innerHTML = `<div class="tile-inner"></div>`;
             tile.addEventListener("click", () => handleTileClick(i));
             gridEl.appendChild(tile);
         }
@@ -92,7 +92,7 @@
             if (!res.success) {
                 window.showToast(res.error || "Ошибка запуска игры", "error");
                 btnStart.disabled = false;
-                btnStart.textContent = "ИГРАТЬ 💣";
+                btnStart.textContent = "ИГРАТЬ";
                 return;
             }
 
@@ -115,12 +115,11 @@
 
             if (multDisplay) multDisplay.textContent = "1.00x";
             if (window.soundManager) window.soundManager.play("click");
-            window.showToast(`Игра началась! Мин на поле: ${minesCount}`, "info");
 
         } catch (e) {
             window.showToast("Сетевая ошибка: " + e.message, "error");
             btnStart.disabled = false;
-            btnStart.textContent = "ИГРАТЬ 💣";
+            btnStart.textContent = "ИГРАТЬ";
         }
     }
 
@@ -178,8 +177,11 @@
             inGame = false;
             revealAllMines(res.mine_positions);
             if (res.new_balance !== undefined) window.updateBalance(res.new_balance);
-            if (window.confettiManager) window.confettiManager.burst();
-            window.showWinModal(res.win_amount, `ДЖЕКПОТ! Все безопасные ячейки открыты (${currentMultiplier}x)!`);
+            if (window.soundManager) window.soundManager.play("win");
+            if (window.confetti) window.confetti.fire(2500, 60);
+
+            const minesCard = gridEl.closest('.card');
+            window.showFloatingWin(minesCard, res.win_amount, currentMultiplier);
             resetControls();
         }
     }
@@ -241,12 +243,20 @@
 
             revealAllMines(res.mine_positions);
             if (window.soundManager) window.soundManager.play("win");
-            if (window.confettiManager) window.confettiManager.burst();
-            window.showWinModal(res.win_amount, `Успешный забор! Коэффициент: ${res.multiplier.toFixed(2)}x`);
+            if (window.confetti) window.confetti.fire(2000, 45);
+
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.notificationOccurred("success");
+            }
+
+            // Real casino UX: Floating victory chip directly over mines card
+            const minesCard = gridEl.closest('.card');
+            window.showFloatingWin(minesCard, res.win_amount, res.multiplier);
 
             resetControls();
 
         } catch (e) {
+            console.error("Mines cashout error:", e);
             window.showToast("Сетевая ошибка: " + e.message, "error");
             btnCashout.disabled = false;
         }
@@ -255,9 +265,11 @@
     function resetControls() {
         btnStart.style.display = "block";
         btnStart.disabled = false;
-        btnStart.textContent = "ИГРАТЬ 💣";
+        btnStart.textContent = "ИГРАТЬ";
         btnCashout.style.display = "none";
+        btnCashout.disabled = false;
         currentSession = null;
+        inGame = false;
     }
 
     window.addEventListener("DOMContentLoaded", init);

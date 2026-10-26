@@ -1,35 +1,55 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
   <defs>
     <radialGradient id="bg_glow" cx="50%" cy="40%" r="65%">
-      <stop offset="0%" stop-color="#eab308" stop-opacity="0.55"/>
-      <stop offset="50%" stop-color="#713f12" stop-opacity="0.3"/>
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#78350f" stop-opacity="0.3"/>
       <stop offset="100%" stop-color="#0a0d18" stop-opacity="1"/>
     </radialGradient>
-    <linearGradient id="border_grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#eab308" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="#713f12" stop-opacity="0.3"/>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="30%" stop-color="#fbbf24"/>
+      <stop offset="70%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#78350f"/>
     </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#eab308" flood-opacity="0.6"/>
+    <filter id="trophyGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   </defs>
   
-  <!-- Base Squircle -->
-  <rect x="8" y="8" width="240" height="240" rx="52" fill="url(#bg_glow)" stroke="url(#border_grad)" stroke-width="3"/>
+  <rect x="8" y="8" width="240" height="240" rx="52" fill="url(#bg_glow)" stroke="url(#goldGrad)" stroke-width="3"/>
+  <text x="210" y="44" font-size="20" opacity="0.4" text-anchor="middle" fill="#ffb703">⭐️</text>
   
-  <!-- Telegram Star watermark -->
-  <text x="210" y="44" font-size="20" opacity="0.3" text-anchor="middle" fill="#ffb703">⭐️</text>
+  <rect x="22" y="24" width="76" height="20" rx="6" fill="rgba(0,0,0,0.5)" stroke="#fbbf24" stroke-width="1"/>
+  <text x="60" y="38" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="900" fill="#fbbf24" text-anchor="middle" letter-spacing="0.5">MYTHIC</text>
   
-  <!-- Rarity Tag -->
-  <rect x="22" y="24" width="76" height="20" rx="6" fill="rgba(0,0,0,0.5)" stroke="#f43f5e" stroke-width="1"/>
-  <text x="60" y="38" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="900" fill="#f43f5e" text-anchor="middle" letter-spacing="0.5">MYTHIC NFT</text>
-  
-  <!-- 3D Gift Artwork -->
-  <g filter="url(#shadow)">
-    <text x="128" y="160" font-size="105" text-anchor="middle" dominant-baseline="central">🏆</text>
+  <!-- 3D Gold Trophy Artwork -->
+  <g transform="translate(128, 142)" filter="url(#trophyGlow)">
+    <!-- Base Pedestal -->
+    <rect x="-35" y="45" width="70" height="15" rx="4" fill="#1e293b" stroke="url(#goldGrad)" stroke-width="2"/>
+    <rect x="-24" y="38" width="48" height="8" rx="2" fill="url(#goldGrad)"/>
+    <path d="M-12,24 L12,24 L6,38 L-6,38 Z" fill="url(#goldGrad)"/>
+    
+    <!-- Left Handle -->
+    <path d="M-36,-30 C-62,-30 -62,10 -32,14" fill="none" stroke="url(#goldGrad)" stroke-width="6" stroke-linecap="round"/>
+    <!-- Right Handle -->
+    <path d="M36,-30 C62,-30 62,10 32,14" fill="none" stroke="url(#goldGrad)" stroke-width="6" stroke-linecap="round"/>
+    
+    <!-- Cup Body -->
+    <path d="M-42,-44 L42,-44 C42,-15 32,24 0,24 C-32,24 -42,-15 -42,-44 Z" fill="url(#goldGrad)" stroke="#fef08a" stroke-width="1.5"/>
+    <ellipse cx="0" cy="-44" rx="42" ry="9" fill="#fef08a"/>
+    <ellipse cx="0" cy="-44" rx="38" ry="7" fill="#b45309"/>
+    
+    <!-- Telegram Star on Cup Face -->
+    <polygon points="0,-18 3,-9 12,-9 5,-3 8,6 0,1 -8,6 -5,-3 -12,-9 -3,-9" fill="#ffffff" opacity="0.95"/>
+    
+    <!-- Specular Highlight Line -->
+    <path d="M-26,-36 C-24,-10 -14,14 0,18" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.6"/>
   </g>
   
-  <!-- Bottom Telegram NFT Label -->
   <rect x="78" y="214" width="100" height="20" rx="8" fill="rgba(0,0,0,0.6)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
   <text x="128" y="228" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="800" fill="#f8fafc" text-anchor="middle" letter-spacing="1">TELEGRAM NFT</text>
 </svg>

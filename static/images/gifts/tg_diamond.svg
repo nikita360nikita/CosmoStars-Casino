@@ -1,35 +1,53 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
   <defs>
     <radialGradient id="bg_glow" cx="50%" cy="40%" r="65%">
-      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.55"/>
-      <stop offset="50%" stop-color="#0369a1" stop-opacity="0.3"/>
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.55"/>
+      <stop offset="50%" stop-color="#164e63" stop-opacity="0.3"/>
       <stop offset="100%" stop-color="#0a0d18" stop-opacity="1"/>
     </radialGradient>
     <linearGradient id="border_grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="#0369a1" stop-opacity="0.3"/>
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#0891b2" stop-opacity="0.3"/>
     </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#38bdf8" flood-opacity="0.6"/>
+    <filter id="gemGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   </defs>
   
-  <!-- Base Squircle -->
   <rect x="8" y="8" width="240" height="240" rx="52" fill="url(#bg_glow)" stroke="url(#border_grad)" stroke-width="3"/>
+  <text x="210" y="44" font-size="20" opacity="0.4" text-anchor="middle" fill="#ffb703">⭐️</text>
   
-  <!-- Telegram Star watermark -->
-  <text x="210" y="44" font-size="20" opacity="0.3" text-anchor="middle" fill="#ffb703">⭐️</text>
+  <rect x="22" y="24" width="86" height="20" rx="6" fill="rgba(0,0,0,0.5)" stroke="#22d3ee" stroke-width="1"/>
+  <text x="65" y="38" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="900" fill="#22d3ee" text-anchor="middle" letter-spacing="0.5">LEGENDARY</text>
   
-  <!-- Rarity Tag -->
-  <rect x="22" y="24" width="76" height="20" rx="6" fill="rgba(0,0,0,0.5)" stroke="#facc15" stroke-width="1"/>
-  <text x="60" y="38" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="900" fill="#facc15" text-anchor="middle" letter-spacing="0.5">LEGENDARY</text>
-  
-  <!-- 3D Gift Artwork -->
-  <g filter="url(#shadow)">
-    <text x="128" y="160" font-size="105" text-anchor="middle" dominant-baseline="central">💎</text>
+  <!-- 3D Brilliant Cut Diamond Artwork -->
+  <g transform="translate(128, 142)" filter="url(#gemGlow)">
+    <!-- Base Shadow -->
+    <polygon points="-65,-28 65,-28 0,65" fill="#083344" transform="translate(0, 8)"/>
+    
+    <!-- Table Face (Top) -->
+    <polygon points="-36,-44 36,-44 55,-26 -55,-26" fill="#e0f2fe" stroke="#67e8f9" stroke-width="1"/>
+    <!-- Top Left Facet -->
+    <polygon points="-65,-26 -55,-26 -36,-44" fill="#bae6fd" stroke="#67e8f9" stroke-width="1"/>
+    <!-- Top Right Facet -->
+    <polygon points="65,-26 55,-26 36,-44" fill="#38bdf8" stroke="#67e8f9" stroke-width="1"/>
+    <!-- Center Lower Facet -->
+    <polygon points="-25,-26 25,-26 0,60" fill="#bae6fd" stroke="#67e8f9" stroke-width="1"/>
+    <!-- Left Lower Facet -->
+    <polygon points="-65,-26 -25,-26 0,60" fill="#38bdf8" stroke="#0891b2" stroke-width="1"/>
+    <!-- Right Lower Facet -->
+    <polygon points="65,-26 25,-26 0,60" fill="#0284c7" stroke="#0891b2" stroke-width="1"/>
+    <!-- Bottom Facet Highlight -->
+    <polygon points="-12,-26 12,-26 0,60" fill="#ffffff" opacity="0.6"/>
+    <!-- Sparkle Stars -->
+    <polygon points="-45,-48 -43,-43 -38,-41 -43,-39 -45,-34 -47,-39 -52,-41 -47,-43" fill="#ffffff"/>
+    <polygon points="45,-15 47,-10 52,-8 47,-6 45,-1 43,-6 38,-8 43,-10" fill="#ffffff"/>
   </g>
   
-  <!-- Bottom Telegram NFT Label -->
   <rect x="78" y="214" width="100" height="20" rx="8" fill="rgba(0,0,0,0.6)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
   <text x="128" y="228" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="800" fill="#f8fafc" text-anchor="middle" letter-spacing="1">TELEGRAM NFT</text>
 </svg>

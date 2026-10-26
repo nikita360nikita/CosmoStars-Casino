@@ -321,7 +321,7 @@ class CrashGame {
                 this.state = 'cashed_out';
                 window.updateUserBalance(res.new_balance);
                 window.sound.playWin();
-                if (window.confetti) window.confetti.fire(3000, 60);
+                if (window.confetti) window.confetti.fire(2500, 50);
 
                 if (window.Telegram?.WebApp?.HapticFeedback) {
                     window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
@@ -330,15 +330,20 @@ class CrashGame {
                 this.statusSubEl.textContent = `ВЫИГРЫШ: +${res.win_amount} ⭐ (${res.final_multiplier}x)`;
                 this.statusSubEl.style.color = '#10b981';
 
-                window.showWinModal(res.win_amount, `🚀 Забрали на ${res.final_multiplier}x!`);
+                // Real casino UX: Floating non-intrusive win chip directly over crash card
+                const crashCard = this.canvas ? this.canvas.closest('.card') : null;
+                window.showFloatingWin(crashCard, res.win_amount, res.final_multiplier);
+
+                // Instant replay: immediate reset so player can bet again in 0.1s
+                this.resetControls(true);
             } else {
                 this.triggerCrashEffect(res.actual_crash || this.currentMultiplier);
+                this.resetControls(false);
             }
         } catch (e) {
             console.error(e);
             window.showToast("Ошибка при выводе");
-        } finally {
-            this.resetControls();
+            this.resetControls(true);
         }
     }
 
@@ -352,7 +357,7 @@ class CrashGame {
             multiplier: 9999.0 // Will result in loss
         }).catch(() => {});
 
-        this.resetControls();
+        this.resetControls(false);
     }
 
     triggerCrashEffect(crashMult) {
@@ -402,15 +407,16 @@ class CrashGame {
         animateBlast();
     }
 
-    resetControls() {
+    resetControls(immediate = false) {
+        const delay = immediate ? 50 : 800;
         setTimeout(() => {
             this.state = 'idle';
             this.actionBtn.disabled = false;
             this.actionBtn.className = 'btn-action btn-green';
-            this.actionBtn.textContent = 'ВЗЛЁТ (ПОСТАВИТЬ)';
+            this.actionBtn.textContent = 'СТАВКА';
             this.statusSubEl.style.color = '';
             this.statusSubEl.textContent = "ГОТОВ К ВЗЛЁТУ";
-        }, 2000);
+        }, delay);
     }
 }
 

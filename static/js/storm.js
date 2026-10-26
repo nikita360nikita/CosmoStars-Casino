@@ -88,7 +88,7 @@
             if (!res.success) {
                 window.showToast(res.error || "Ошибка старта", "error");
                 btnStart.disabled = false;
-                btnStart.textContent = "ВОЙТИ В ШТОРМ ⛈️";
+                btnStart.textContent = "В ИГРУ";
                 return;
             }
 
@@ -108,12 +108,11 @@
 
             if (currentMultText) currentMultText.textContent = "1.00x";
             if (window.soundManager) window.soundManager.play("click");
-            window.showToast("Шторм начался! Выберите облако на 1-м уровне", "info");
 
         } catch (e) {
             window.showToast("Сетевая ошибка: " + e.message, "error");
             btnStart.disabled = false;
-            btnStart.textContent = "ВОЙТИ В ШТОРМ ⛈️";
+            btnStart.textContent = "В ИГРУ";
         }
     }
 
@@ -175,8 +174,11 @@
             // Conquered the storm!
             inGame = false;
             if (res.new_balance !== undefined) window.updateBalance(res.new_balance);
-            if (window.confettiManager) window.confettiManager.burst();
-            window.showWinModal(res.win_amount, `ВЕРШИНА ШТОРМА ПОКОРЕНА! Множитель: ${res.multiplier.toFixed(2)}x 🏆`);
+            if (window.soundManager) window.soundManager.play("win");
+            if (window.confetti) window.confetti.fire(2500, 60);
+
+            const stormCard = towerEl.closest('.card');
+            window.showFloatingWin(stormCard, res.win_amount, res.multiplier);
             resetControls();
         } else {
             updateActiveRowVisual();
@@ -235,12 +237,20 @@
             if (res.new_balance !== undefined) window.updateBalance(res.new_balance);
 
             if (window.soundManager) window.soundManager.play("win");
-            if (window.confettiManager) window.confettiManager.burst();
-            window.showWinModal(res.win_amount, `Спуск из шторма успешен! Забрано: ${res.win_amount} ⭐️ (${res.multiplier.toFixed(2)}x)`);
+            if (window.confetti) window.confetti.fire(2000, 45);
+
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.notificationOccurred("success");
+            }
+
+            // Real casino UX: Floating victory chip directly over storm card
+            const stormCard = towerEl.closest('.card');
+            window.showFloatingWin(stormCard, res.win_amount, res.multiplier);
 
             resetControls();
 
         } catch (e) {
+            console.error("Storm cashout error:", e);
             window.showToast("Сетевая ошибка: " + e.message, "error");
             btnCashout.disabled = false;
         }
@@ -249,9 +259,11 @@
     function resetControls() {
         btnStart.style.display = "block";
         btnStart.disabled = false;
-        btnStart.textContent = "ВОЙТИ В ШТОРМ ⛈️";
+        btnStart.textContent = "В ИГРУ";
         btnCashout.style.display = "none";
+        btnCashout.disabled = false;
         currentSession = null;
+        inGame = false;
     }
 
     window.addEventListener("DOMContentLoaded", init);

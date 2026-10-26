@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <!-- 3D Sphere Radial Gradient -->
+    <radialGradient id="bombSphere" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#475569"/>
+      <stop offset="25%" stop-color="#1e293b"/>
+      <stop offset="60%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <!-- Rim Violet Reflection -->
+    <linearGradient id="rimGlow" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#a855f7" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#d946ef" stop-opacity="0"/>
+    </linearGradient>
+    <!-- Cap Bronze Gradient -->
+    <linearGradient id="bombCap" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#94a3b8"/>
+      <stop offset="40%" stop-color="#cbd5e1"/>
+      <stop offset="70%" stop-color="#64748b"/>
+      <stop offset="100%" stop-color="#334155"/>
+    </linearGradient>
+    <!-- Spark Plasma Filter -->
+    <filter id="sparkGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Ambient Shadow underneath bomb -->
+  <ellipse cx="64" cy="116" rx="36" ry="9" fill="rgba(0, 0, 0, 0.55)" filter="blur(4px)"/>
+
+  <!-- Fuse Cord -->
+  <path d="M64,36 C64,22 80,24 84,14" fill="none" stroke="#e2e8f0" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M64,36 C64,22 80,24 84,14" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-dasharray="2,2"/>
+
+  <!-- Burning Spark at Fuse End -->
+  <g transform="translate(84, 14)" filter="url(#sparkGlow)">
+    <circle cx="0" cy="0" r="7" fill="#fbbf24" opacity="0.6"/>
+    <!-- Starburst spark -->
+    <path d="M0,-8 L2,-2 L8,0 L2,2 L0,8 L-2,2 L-8,0 L-2,-2 Z" fill="#ffffff"/>
+    <circle cx="0" cy="0" r="3" fill="#f59e0b"/>
+    <circle cx="0" cy="0" r="1.5" fill="#ffffff"/>
+  </g>
+
+  <!-- Bomb Metallic Cap -->
+  <path d="M54,34 L56,26 C56,24 72,24 72,26 L74,34 Z" fill="url(#bombCap)" stroke="#1e293b" stroke-width="1"/>
+  <ellipse cx="64" cy="26" rx="8" ry="2.5" fill="#e2e8f0"/>
+
+  <!-- Main Bomb Sphere -->
+  <circle cx="64" cy="72" r="42" fill="url(#bombSphere)"/>
+  <circle cx="64" cy="72" r="42" fill="url(#rimGlow)"/>
+
+  <!-- Primary Specular Highlight (Soft Gloss) -->
+  <ellipse cx="48" cy="50" rx="14" ry="8" transform="rotate(-35, 48, 50)" fill="#ffffff" opacity="0.35"/>
+  <ellipse cx="44" cy="46" rx="5" ry="2.5" transform="rotate(-35, 44, 46)" fill="#ffffff" opacity="0.75"/>
+
+  <!-- Secondary Bottom Rim Bounce Light -->
+  <path d="M38,98 C46,108 82,108 90,98" fill="none" stroke="#8b5cf6" stroke-width="2.5" opacity="0.6" stroke-linecap="round"/>
+
+  <!-- Telegram Star Gold Emblem Engraved on Bomb Face -->
+  <g transform="translate(64, 76)">
+    <polygon points="0,-12 3.5,-3.5 12.5,-3.5 5.5,2 8,11 0,5.5 -8,11 -5.5,2 -12.5,-3.5 -3.5,-3.5" fill="#fbbf24" opacity="0.9"/>
+    <polygon points="0,-12 3.5,-3.5 12.5,-3.5 5.5,2 8,11 0,5.5 -8,11 -5.5,2 -12.5,-3.5 -3.5,-3.5" fill="none" stroke="#f59e0b" stroke-width="1"/>
+  </g>
+</svg>

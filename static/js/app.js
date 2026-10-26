@@ -61,6 +61,29 @@ window.showWinModal = function(amount, subtitleHtml = '') {
     }
 };
 
+window.showFloatingWin = function(containerOrEl, amount, multiplier = null) {
+    const parent = containerOrEl || document.querySelector('.main-content') || document.body;
+    const badge = document.createElement('div');
+    badge.className = 'floating-win-badge';
+    badge.innerHTML = `
+        <span class="fw-icon">🎉</span>
+        <span class="fw-stars">+${amount} ⭐️</span>
+        ${multiplier ? `<span class="fw-mult">${Number(multiplier).toFixed(2)}x</span>` : ''}
+    `;
+
+    const computedPos = window.getComputedStyle(parent).position;
+    if (computedPos === 'static') {
+        parent.style.position = 'relative';
+    }
+
+    parent.appendChild(badge);
+
+    setTimeout(() => {
+        badge.classList.add('fade-out');
+        setTimeout(() => badge.remove(), 400);
+    }, 1900);
+};
+
 window.showDropModal = function(item, giftDbId) {
     const modal = document.getElementById('modal-drop-celebration');
     if (!modal) return;

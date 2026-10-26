@@ -53,10 +53,17 @@
             <section class="tab-view active" id="tab-cases">
                 <!-- Cases Grid Section -->
                 <div id="cases-grid-view-wrapper">
-                    <div class="section-hero">
-                        <div class="hero-badge">🔥 КОЛЛЕКЦИОННЫЕ ДРОПЫ</div>
-                        <h2 class="hero-title">Telegram Gifts</h2>
-                        <p class="hero-sub">Выбивай подарки Telegram с серийными номерами, улучшай в Апгрейде или выводи Stars!</p>
+                    <div class="game-header-banner">
+                        <div class="gh-left">
+                            <img src="/static/images/icons/cases.svg" class="gh-3d-icon" alt="Cases">
+                            <div class="gh-text">
+                                <div class="gh-title-row">
+                                    <h2 class="gh-title">КЕЙСЫ</h2>
+                                    <span class="gh-pill">Telegram NFT</span>
+                                </div>
+                                <p class="gh-sub">Коллекционные подарки с серийными номерами и выводом Stars</p>
+                            </div>
+                        </div>
                     </div>
                     <div class="cases-grid" id="cases-grid-view"></div>
                 </div>
@@ -90,8 +97,14 @@
             <!-- TAB: МИНЫ (MINES 5x5) -->
             <section class="tab-view" id="tab-mines">
                 <div class="card">
-                    <div class="card-title">
-                        <span>💣 Мины (Mines 5×5)</span>
+                    <div class="game-card-topbar">
+                        <div class="gct-left">
+                            <img src="/static/images/icons/mines.svg" class="gct-icon" alt="Mines">
+                            <div class="gct-meta">
+                                <h3 class="gct-title">Mines</h3>
+                                <span class="gct-tag">Поле 5×5 • Мгновенный вывод</span>
+                            </div>
+                        </div>
                         <span class="card-badge-multiplier" id="mines-multiplier-badge">1.00x</span>
                     </div>
 
@@ -135,7 +148,7 @@
                         </div>
                     </div>
 
-                    <button class="btn-action btn-purple" id="btn-mines-start">ИГРАТЬ 💣</button>
+                    <button class="btn-action btn-purple" id="btn-mines-start">ИГРАТЬ</button>
                     <button class="btn-action btn-green btn-cashout-mines" id="btn-mines-cashout" style="display: none;">
                         <span>ЗАБРАТЬ</span> <b>0 ⭐️</b>
                     </button>
@@ -145,11 +158,16 @@
             <!-- TAB: ШТОРМ (STORM LIGHTNING TOWER) -->
             <section class="tab-view" id="tab-storm">
                 <div class="card">
-                    <div class="card-title">
-                        <span>⛈️ Шторм (Storm Tower)</span>
+                    <div class="game-card-topbar">
+                        <div class="gct-left">
+                            <img src="/static/images/icons/storm.svg" class="gct-icon" alt="Storm">
+                            <div class="gct-meta">
+                                <h3 class="gct-title">Storm Tower</h3>
+                                <span class="gct-tag">Башня 7 уровней • до 15.00x</span>
+                            </div>
+                        </div>
                         <span class="card-badge-multiplier" id="storm-current-mult">1.00x</span>
                     </div>
-                    <p class="section-hint">Поднимайтесь выше сквозь грозовые облака! Избегайте удара молнии ⚡</p>
 
                     <!-- Vertical Storm Mountain Tower -->
                     <div class="storm-tower-container">
@@ -176,7 +194,7 @@
                         </div>
                     </div>
 
-                    <button class="btn-action btn-purple" id="btn-storm-start">ВОЙТИ В ШТОРМ ⛈️</button>
+                    <button class="btn-action btn-purple" id="btn-storm-start">В ИГРУ</button>
                     <button class="btn-action btn-green btn-cashout-storm" id="btn-storm-cashout" style="display: none;">
                         <span>ЗАБРАТЬ</span> <b>0 ⭐️</b>
                     </button>
@@ -186,8 +204,14 @@
             <!-- TAB 2: РАКЕТКА (CRASH) -->
             <section class="tab-view" id="tab-crash">
                 <div class="card">
-                    <div class="card-title">
-                        <span>🚀 Ракетка (Crash)</span>
+                    <div class="game-card-topbar">
+                        <div class="gct-left">
+                            <img src="/static/images/icons/crash.svg" class="gct-icon" alt="Crash">
+                            <div class="gct-meta">
+                                <h3 class="gct-title">Crash Ракетка</h3>
+                                <span class="gct-tag">Коэффициент до 10,000x</span>
+                            </div>
+                        </div>
                         <span class="card-badge-provably">PROVABLY FAIR</span>
                     </div>
                     <div class="crash-display">
@@ -217,15 +241,21 @@
                         </div>
                     </div>
 
-                    <button class="btn-action btn-green" id="btn-crash-action">ВЗЛЁТ (ПОСТАВИТЬ)</button>
+                    <button class="btn-action btn-green" id="btn-crash-action">СТАВКА</button>
                 </div>
             </section>
 
             <!-- TAB 3: МОНЕТКА (COINFLIP) -->
             <section class="tab-view" id="tab-coinflip">
                 <div class="card">
-                    <div class="card-title">
-                        <span>🪙 Монетка (Coinflip)</span>
+                    <div class="game-card-topbar">
+                        <div class="gct-left">
+                            <img src="/static/images/icons/coinflip.svg" class="gct-icon" alt="Coinflip">
+                            <div class="gct-meta">
+                                <h3 class="gct-title">Coinflip</h3>
+                                <span class="gct-tag">Шанс 50 / 50 • Мгновенный выигрыш</span>
+                            </div>
+                        </div>
                         <span class="card-badge-multiplier">x1.95 ВЫИГРЫШ</span>
                     </div>
                     
@@ -284,8 +314,14 @@
             <!-- TAB 4: АПГРЕЙДЕР ПОДАРКОВ (GIFTS UPGRADER) -->
             <section class="tab-view" id="tab-upgrader">
                 <div class="card">
-                    <div class="card-title">
-                        <span>⚡ Апгрейдер Подарков</span>
+                    <div class="game-card-topbar">
+                        <div class="gct-left">
+                            <img src="/static/images/icons/upgrader.svg" class="gct-icon" alt="Upgrader">
+                            <div class="gct-meta">
+                                <h3 class="gct-title">Upgrader</h3>
+                                <span class="gct-tag">Колесо шансов • Обмен на редкие NFT</span>
+                            </div>
+                        </div>
                         <span class="card-badge-multiplier" id="upgrader-mult-badge">x2.00</span>
                     </div>
 
@@ -386,10 +422,12 @@
 
                 <!-- Empty State -->
                 <div class="inventory-empty-state" id="inventory-empty">
-                    <div class="empty-icon">🎒</div>
+                    <div class="empty-icon">
+                        <img src="/static/images/icons/gifts.svg" class="empty-3d-img" alt="Gifts">
+                    </div>
                     <div class="empty-title">Инвентарь пуст</div>
                     <p class="empty-desc">Открывайте кейсы с Telegram подарками, чтобы собрать свою коллекцию или продавать их за Stars!</p>
-                    <button class="btn-action btn-gold btn-empty-open" onclick="window.switchTab('cases')">ОТКРЫТЬ КЕЙС</button>
+                    <button class="btn-action btn-gold btn-empty-open" onclick="window.switchTab('cases')">К КЕЙСАМ</button>
                 </div>
 
                 <!-- User Gifts Grid -->
@@ -416,31 +454,41 @@
             </section>
         </main>
 
-        <!-- Bottom Fixed Navigation -->
+        <!-- Bottom Fixed Navigation (RubUp 3D Graphics) -->
         <nav class="bottom-nav">
             <button class="nav-item active" data-tab="cases">
-                <span class="nav-icon">🎁</span>
+                <div class="nav-icon-wrap">
+                    <img src="/static/images/icons/cases.svg" alt="Кейсы" class="nav-svg-icon">
+                </div>
                 <span>Кейсы</span>
             </button>
             <button class="nav-item" data-tab="upgrader">
-                <span class="nav-icon">⚡</span>
+                <div class="nav-icon-wrap">
+                    <img src="/static/images/icons/upgrader.svg" alt="Апгрейд" class="nav-svg-icon">
+                </div>
                 <span>Апгрейд</span>
             </button>
             <button class="nav-item" data-tab="mines">
-                <span class="nav-icon">💣</span>
+                <div class="nav-icon-wrap">
+                    <img src="/static/images/icons/mines.svg" alt="Мины" class="nav-svg-icon">
+                </div>
                 <span>Мины</span>
             </button>
             <button class="nav-item" data-tab="storm">
-                <span class="nav-icon">⛈️</span>
+                <div class="nav-icon-wrap">
+                    <img src="/static/images/icons/storm.svg" alt="Шторм" class="nav-svg-icon">
+                </div>
                 <span>Шторм</span>
             </button>
             <button class="nav-item" data-tab="crash">
-                <span class="nav-icon">🚀</span>
+                <div class="nav-icon-wrap">
+                    <img src="/static/images/icons/crash.svg" alt="Ракетка" class="nav-svg-icon">
+                </div>
                 <span>Ракетка</span>
             </button>
             <button class="nav-item" data-tab="inventory">
                 <div class="nav-icon-wrap">
-                    <span class="nav-icon">🎒</span>
+                    <img src="/static/images/icons/gifts.svg" alt="Подарки" class="nav-svg-icon">
                     <span class="nav-badge" id="nav-gifts-badge" style="display: none;">0</span>
                 </div>
                 <span>Подарки</span>

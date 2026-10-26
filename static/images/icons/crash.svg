@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="rocketBody" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="45%" stop-color="#e0e7ff"/>
+      <stop offset="85%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="rocketNose" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff007a"/>
+      <stop offset="60%" stop-color="#d946ef"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="flameGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="35%" stop-color="#fb923c"/>
+      <stop offset="70%" stop-color="#f43f5e"/>
+      <stop offset="100%" stop-color="rgba(147, 51, 234, 0)"/>
+    </linearGradient>
+    <linearGradient id="glassVisor" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="50%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#082f49"/>
+    </linearGradient>
+    <filter id="glowPlasma" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Stars / Space particles -->
+  <circle cx="20" cy="30" r="1.5" fill="#fef08a" opacity="0.8"/>
+  <circle cx="110" cy="18" r="2" fill="#38bdf8" opacity="0.9"/>
+  <circle cx="100" cy="110" r="1.5" fill="#e0e7ff" opacity="0.7"/>
+  <circle cx="16" cy="95" r="2" fill="#d946ef" opacity="0.8"/>
+
+  <!-- Exhaust Flame -->
+  <g transform="translate(38, 76) rotate(-45)">
+    <!-- Outer flame -->
+    <path d="M-6,0 C-14,24 -4,46 0,56 C4,46 14,24 6,0 Z" fill="url(#flameGrad)" filter="url(#glowPlasma)"/>
+    <!-- Inner bright flame -->
+    <path d="M-3,0 C-7,16 -2,32 0,38 C2,32 7,16 3,0 Z" fill="#ffffff" opacity="0.95"/>
+  </g>
+
+  <!-- Thruster Ring -->
+  <g transform="translate(64, 64) rotate(45)">
+    <rect x="-10" y="24" width="20" height="7" rx="3.5" fill="#334155" stroke="#64748b" stroke-width="1.5"/>
+  </g>
+
+  <!-- Rocket Main Body Group (Rotated 45 deg) -->
+  <g transform="translate(64, 60) rotate(45)">
+    <!-- Left Fin -->
+    <path d="M-13,6 L-26,24 C-26,24 -18,25 -10,21 Z" fill="url(#rocketNose)"/>
+    <path d="M-13,6 L-26,24" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
+
+    <!-- Right Fin -->
+    <path d="M13,6 L26,24 C26,24 18,25 10,21 Z" fill="url(#rocketNose)"/>
+    <path d="M13,6 L26,24" stroke="rgba(255,255,255,0.4)" stroke-width="1.5"/>
+
+    <!-- Fuselage Body -->
+    <path d="M0,-36 C16,-18 15,16 12,24 C8,25 -8,25 -12,24 C-15,16 -16,-18 0,-36 Z" fill="url(#rocketBody)" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+
+    <!-- Nose Cone Cap -->
+    <path d="M0,-36 C10,-24 13,-14 13,-12 C7,-10 -7,-10 -13,-12 C-13,-14 -10,-24 0,-36 Z" fill="url(#rocketNose)"/>
+
+    <!-- Cockpit Porthole Glass Window -->
+    <circle cx="0" cy="-2" r="8" fill="#1e1b4b" stroke="url(#rocketNose)" stroke-width="2"/>
+    <circle cx="0" cy="-2" r="6" fill="url(#glassVisor)"/>
+    <!-- Specular Reflection -->
+    <ellipse cx="-2" cy="-4" rx="2" ry="3.5" transform="rotate(-30, -2, -4)" fill="#ffffff" opacity="0.8"/>
+
+    <!-- Body Specular Highlight Curve -->
+    <path d="M-9,-12 C-11,2 -10,14 -8,20" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+  </g>
+</svg>

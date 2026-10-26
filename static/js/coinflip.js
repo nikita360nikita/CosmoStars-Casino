@@ -116,10 +116,12 @@ class CoinflipGame {
 
                 if (res.is_win) {
                     window.sound.playWin();
+                    if (window.confetti) window.confetti.fire(2000, 40);
                     if (window.Telegram?.WebApp?.HapticFeedback) {
                         window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                     }
-                    window.showWinModal(res.win_amount, `🪙 Выпал ${res.winning_side === 'heads' ? 'Орёл' : 'Решка'}! Победили!`);
+                    const coinCard = this.coinInner ? this.coinInner.closest('.card') : null;
+                    window.showFloatingWin(coinCard, res.win_amount, 1.95);
                 } else {
                     window.sound.playLose();
                     if (window.Telegram?.WebApp?.HapticFeedback) {

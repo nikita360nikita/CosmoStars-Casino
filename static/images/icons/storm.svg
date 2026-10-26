@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="cloudBack" cx="40%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#3b0764"/>
+      <stop offset="60%" stop-color="#1e1035"/>
+      <stop offset="100%" stop-color="#0a0518"/>
+    </radialGradient>
+    <radialGradient id="cloudFront" cx="35%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="40%" stop-color="#6d28d9"/>
+      <stop offset="80%" stop-color="#4c1d95"/>
+      <stop offset="100%" stop-color="#2e1065"/>
+    </radialGradient>
+    <linearGradient id="lightningGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="30%" stop-color="#fef08a"/>
+      <stop offset="70%" stop-color="#facc15"/>
+      <stop offset="100%" stop-color="#eab308"/>
+    </linearGradient>
+    <linearGradient id="lightningRim" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <filter id="lightningGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Ambient Cloud Glow Behind -->
+  <circle cx="64" cy="54" r="38" fill="#7c3aed" opacity="0.35" filter="blur(10px)"/>
+
+  <!-- Back Layer Cloud (Darker Depth) -->
+  <g fill="url(#cloudBack)">
+    <circle cx="42" cy="46" r="22"/>
+    <circle cx="76" cy="42" r="26"/>
+    <circle cx="94" cy="58" r="18"/>
+    <rect x="36" y="52" width="62" height="24" rx="12"/>
+  </g>
+
+  <!-- Front Volumetric Cloud -->
+  <g fill="url(#cloudFront)">
+    <!-- Base pill -->
+    <rect x="22" y="52" width="76" height="28" rx="14"/>
+    <!-- Puffs -->
+    <circle cx="44" cy="50" r="22"/>
+    <circle cx="70" cy="44" r="25"/>
+    <circle cx="92" cy="56" r="16"/>
+    <circle cx="30" cy="62" r="14"/>
+  </g>
+
+  <!-- Cloud Specular Highlight Rims -->
+  <path d="M50,28 C64,26 84,32 88,48" fill="none" stroke="rgba(255, 255, 255, 0.45)" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M28,44 C34,36 44,36 50,40" fill="none" stroke="rgba(255, 255, 255, 0.35)" stroke-width="2" stroke-linecap="round"/>
+
+  <!-- Electric Lightning Bolts Emitting Out -->
+  <g filter="url(#lightningGlow)">
+    <!-- Main Big Central Lightning Bolt -->
+    <polygon points="68,48 50,78 64,78 48,118 84,68 68,68 82,48" fill="url(#lightningGrad)" stroke="url(#lightningRim)" stroke-width="1.2"/>
+    <!-- Central Pure White Core -->
+    <polygon points="67,52 53,77 64,77 52,110 79,70 67,70 79,52" fill="#ffffff" opacity="0.8"/>
+  </g>
+
+  <!-- Small Electric Spark on Left -->
+  <path d="M26,82 L34,92 L28,96 L36,108" fill="none" stroke="#facc15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+
+  <!-- Energy Rain Dots -->
+  <circle cx="88" cy="94" r="2" fill="#c084fc"/>
+  <circle cx="98" cy="106" r="2" fill="#38bdf8"/>
+  <circle cx="42" cy="112" r="1.5" fill="#facc15"/>
+</svg>

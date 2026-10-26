@@ -1,35 +1,60 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
   <defs>
     <radialGradient id="bg_glow" cx="50%" cy="40%" r="65%">
-      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.55"/>
-      <stop offset="50%" stop-color="#083344" stop-opacity="0.3"/>
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.55"/>
+      <stop offset="50%" stop-color="#3b0764" stop-opacity="0.3"/>
       <stop offset="100%" stop-color="#0a0d18" stop-opacity="1"/>
     </radialGradient>
     <linearGradient id="border_grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="#083344" stop-opacity="0.3"/>
+      <stop offset="0%" stop-color="#c084fc" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#7c3aed" stop-opacity="0.3"/>
     </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#06b6d4" flood-opacity="0.6"/>
+    <linearGradient id="cubeTop" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e9d5ff"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+    <linearGradient id="cubeLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9333ea"/>
+      <stop offset="100%" stop-color="#581c87"/>
+    </linearGradient>
+    <linearGradient id="cubeRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7e22ce"/>
+      <stop offset="100%" stop-color="#3b0764"/>
+    </linearGradient>
+    <filter id="cubeGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   </defs>
   
-  <!-- Base Squircle -->
   <rect x="8" y="8" width="240" height="240" rx="52" fill="url(#bg_glow)" stroke="url(#border_grad)" stroke-width="3"/>
+  <text x="210" y="44" font-size="20" opacity="0.4" text-anchor="middle" fill="#ffb703">⭐️</text>
   
-  <!-- Telegram Star watermark -->
-  <text x="210" y="44" font-size="20" opacity="0.3" text-anchor="middle" fill="#ffb703">⭐️</text>
+  <rect x="22" y="24" width="76" height="20" rx="6" fill="rgba(0,0,0,0.5)" stroke="#c084fc" stroke-width="1"/>
+  <text x="60" y="38" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="900" fill="#c084fc" text-anchor="middle" letter-spacing="0.5">RARE</text>
   
-  <!-- Rarity Tag -->
-  <rect x="22" y="24" width="76" height="20" rx="6" fill="rgba(0,0,0,0.5)" stroke="#38bdf8" stroke-width="1"/>
-  <text x="60" y="38" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="900" fill="#38bdf8" text-anchor="middle" letter-spacing="0.5">RARE</text>
-  
-  <!-- 3D Gift Artwork -->
-  <g filter="url(#shadow)">
-    <text x="128" y="160" font-size="105" text-anchor="middle" dominant-baseline="central">🧊</text>
+  <!-- 3D Isometric Cyber Cube Artwork -->
+  <g transform="translate(128, 142)" filter="url(#cubeGlow)">
+    <!-- Base Shadow -->
+    <polygon points="0,5 50,-24 0,-52 -50,-24" fill="#1e1035" transform="translate(0, 58) scale(1.1)"/>
+    
+    <!-- Top Face -->
+    <polygon points="0,-60 52,-30 0,0 -52,-30" fill="url(#cubeTop)" stroke="#f3e8ff" stroke-width="1.5"/>
+    <!-- Left Face -->
+    <polygon points="-52,-30 0,0 0,58 -52,28" fill="url(#cubeLeft)" stroke="#c084fc" stroke-width="1.5"/>
+    <!-- Right Face -->
+    <polygon points="0,0 52,-30 52,28 0,58" fill="url(#cubeRight)" stroke="#c084fc" stroke-width="1.5"/>
+
+    <!-- Glowing Cyber Circuit Tracks -->
+    <polyline points="0,-45 35,-25 0,-5 -35,-25" fill="none" stroke="#38bdf8" stroke-width="2"/>
+    <circle cx="0" cy="-25" r="4" fill="#38bdf8"/>
+    <polyline points="-35,0 -15,12 -15,42" fill="none" stroke="#22d3ee" stroke-width="2"/>
+    <polyline points="35,0 15,12 15,42" fill="none" stroke="#f472b6" stroke-width="2"/>
   </g>
   
-  <!-- Bottom Telegram NFT Label -->
   <rect x="78" y="214" width="100" height="20" rx="8" fill="rgba(0,0,0,0.6)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
   <text x="128" y="228" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto" font-size="9" font-weight="800" fill="#f8fafc" text-anchor="middle" letter-spacing="1">TELEGRAM NFT</text>
 </svg>
