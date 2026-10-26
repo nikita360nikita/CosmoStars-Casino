@@ -229,7 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 3.5. Withdrawal Modal Handlers
-    const modalWithdraw = document.getElementById('modal-withdraw');
     const btnOpenWithdraw = document.getElementById('btn-open-withdraw');
 
     async function loadWithdrawalHistory() {

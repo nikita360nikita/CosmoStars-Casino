@@ -83,13 +83,14 @@ def get_main_keyboard(webapp_url: str) -> InlineKeyboardMarkup:
     is_https = bool(webapp_url and webapp_url.strip().startswith("https://"))
     top_button = (
         InlineKeyboardButton(
-            text="🚀 Открыть Mini App (Казино)",
+            text="🎮 ИГРАТЬ",
             web_app=WebAppInfo(url=webapp_url)
         )
         if is_https
         else InlineKeyboardButton(
-            text="🚀 Открыть Mini App (Казино)",
-            callback_data="open_app_info"
+            text="🎮 ИГРАТЬ",
+            url=webapp_url if (webapp_url and webapp_url.startswith("http")) else None,
+            callback_data="open_app_info" if not (webapp_url and webapp_url.startswith("http")) else None
         )
     )
     return InlineKeyboardMarkup(
@@ -205,7 +206,7 @@ async def handle_start(message: types.Message):
             await bot.set_chat_menu_button(
                 chat_id=message.chat.id,
                 menu_button=MenuButtonWebApp(
-                    text="🎰 Казино",
+                    text="🎮 ИГРАТЬ",
                     web_app=WebAppInfo(url=WEB_APP_URL)
                 )
             )
@@ -271,6 +272,17 @@ async def handle_accept_terms(callback: types.CallbackQuery):
     user = callback.from_user
     await accept_user_terms(user.id)
     await callback.answer("✅ Условия соглашения успешно приняты!")
+    if WEB_APP_URL and WEB_APP_URL.startswith("https://"):
+        try:
+            await bot.set_chat_menu_button(
+                chat_id=callback.message.chat.id,
+                menu_button=MenuButtonWebApp(
+                    text="🎮 ИГРАТЬ",
+                    web_app=WebAppInfo(url=WEB_APP_URL)
+                )
+            )
+        except Exception:
+            pass
     db_user = await get_user(user.id)
     await send_main_menu(callback, user, db_user, is_edit=True)
 
@@ -278,13 +290,17 @@ async def handle_accept_terms(callback: types.CallbackQuery):
 async def handle_open_app_info(callback: types.CallbackQuery):
     await callback.answer()
     info_text = (
-        "🚀 <b>Как играть в CosmoStars Casino:</b>\n\n"
-        f"1. Откройте в браузере: <a href='{WEB_APP_URL}'>{WEB_APP_URL}</a>\n\n"
-        "2. 💡 <b>Для запуска Mini App прямо внутри Telegram на телефоне:</b>\n"
-        "Запустите туннель: <code>ngrok http 8080</code>\n"
-        "и вставьте полученный HTTPS-адрес в <code>.env</code> в поле <code>WEB_APP_URL</code>!"
+        "🎮 <b>CosmoStars Casino:</b>\n\n"
+        f"👉 <a href='{WEB_APP_URL}'><b>НАЖМИТЕ ЗДЕСЬ, ЧТОБЫ ИГРАТЬ</b></a>"
     )
-    await callback.message.answer(info_text, parse_mode="HTML", disable_web_page_preview=True)
+    await callback.message.answer(
+        info_text,
+        parse_mode="HTML",
+        disable_web_page_preview=True,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🎮 ИГРАТЬ", url=WEB_APP_URL)]
+        ])
+    )
 
 @dp.callback_query(F.data == "back_to_menu")
 async def handle_back_menu(callback: types.CallbackQuery):
