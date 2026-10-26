@@ -499,8 +499,8 @@ async def api_create_withdrawal(request: web.Request) -> web.Response:
     address = str(data.get("address", "")).strip()
     method = str(data.get("method", "Telegram Stars")).strip()
 
-    if amount < 50:
-        return json_response({"success": False, "error": "Минимальная сумма вывода 50 ⭐️"}, 400)
+    if amount < 100:
+        return json_response({"success": False, "error": "Минимальная сумма вывода 100 ⭐️"}, 400)
     if not address:
         return json_response({"success": False, "error": "Укажите адрес или username для вывода"}, 400)
 

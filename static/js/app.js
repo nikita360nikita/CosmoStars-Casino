@@ -150,6 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Modals handling
     const modalDeposit = document.getElementById('modal-deposit');
+    const modalWithdraw = document.getElementById('modal-withdraw');
     const modalDrop = document.getElementById('modal-drop-celebration');
     const modalInspect = document.getElementById('modal-inspect-gift');
     const modalWin = document.getElementById('modal-win');
@@ -157,21 +158,20 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.btn-open-deposit').forEach(btn => {
         btn.addEventListener('click', () => {
             window.sound.playClick();
-            modalDeposit.classList.add('active');
+            if (modalDeposit) modalDeposit.classList.add('active');
         });
     });
 
     document.querySelectorAll('.modal-close-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             window.sound.playClick();
-            [modalDeposit, modalDrop, modalInspect, modalWin].forEach(m => {
-                if (m) m.classList.remove('active');
-            });
+            const modal = btn.closest('.modal-overlay');
+            if (modal) modal.classList.remove('active');
+            document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('active'));
         });
     });
 
-    [modalDeposit, modalDrop, modalInspect, modalWin].forEach(m => {
-        if (!m) return;
+    document.querySelectorAll('.modal-overlay').forEach(m => {
         m.addEventListener('click', (e) => {
             if (e.target === m) m.classList.remove('active');
         });
@@ -288,8 +288,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const address = addressInput.value.trim();
             const method = activeMethodBtn ? activeMethodBtn.dataset.method : 'Telegram Stars';
 
-            if (amount < 50) {
-                window.showToast("Минимальная сумма вывода — 50 ⭐️");
+            if (amount < 100) {
+                window.showToast("Минимальная сумма вывода — 100 ⭐️");
                 return;
             }
             if (!address) {

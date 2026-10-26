@@ -97,13 +97,14 @@ def get_main_keyboard(webapp_url: str) -> InlineKeyboardMarkup:
             [top_button],
             [
                 InlineKeyboardButton(text="⭐️ Пополнить Звёзды", callback_data="buy_stars"),
-                InlineKeyboardButton(text="💰 Баланс", callback_data="check_balance")
+                InlineKeyboardButton(text="↗️ Вывод средств", callback_data="withdraw_info")
             ],
             [
                 InlineKeyboardButton(text="🎒 Мои Подарки", callback_data="my_gifts"),
-                InlineKeyboardButton(text="🏆 Топ игроков", callback_data="leaderboard")
+                InlineKeyboardButton(text="💰 Баланс", callback_data="check_balance")
             ],
             [
+                InlineKeyboardButton(text="🏆 Топ игроков", callback_data="leaderboard"),
                 InlineKeyboardButton(text="📜 Правила / О боте", callback_data="about_info")
             ]
         ]
@@ -135,10 +136,12 @@ async def send_main_menu(message_or_callback, user, db_user, is_edit=False):
         f"👋 Привет, <b>{user.first_name}</b>!\n\n"
         f"Добро пожаловать в <b>CosmoStars Casino</b> — лучшее Telegram Mini App казино на звёзды! ⭐️\n\n"
         f"🎮 <b>Доступные игры:</b>\n"
-        f"• 🚀 <b>Ракетка (Crash):</b> успей забрать выигрыш до взрыва ракеты!\n"
-        f"• 🪙 <b>Монетка (Coinflip):</b> Орёл или Решка со множителем x1.90!\n"
+        f"• 🎁 <b>Кейсы:</b> 12 кейсов с реальными Telegram подарками и NFT!\n"
         f"• ⚡ <b>Апгрейдер:</b> улучшай свои Telegram подарки до ультра-редких!\n"
-        f"• 🎁 <b>Кейсы:</b> 12 кейсов с реальными Telegram подарками и NFT!\n\n"
+        f"• 💣 <b>Мины (Mines 5x5):</b> находи кристаллы и забирай растущий куш!\n"
+        f"• ⛈️ <b>Шторм (Storm):</b> поднимайся по грозовой башне до x15.00!\n"
+        f"• 🚀 <b>Ракетка (Crash):</b> успей забрать выигрыш до взрыва ракеты!\n"
+        f"• 🪙 <b>Монетка (Coinflip):</b> Орёл или Решка со множителем x1.80!\n\n"
         f"⭐️ <b>Твой баланс:</b> <code>{db_user['balance']}</code> ⭐️\n\n"
         f"<i>Нажми кнопку ниже, чтобы запустить приложение:</i>"
     )
@@ -410,6 +413,24 @@ async def handle_about(callback: types.CallbackQuery):
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="📜 Читать политику", callback_data="read_policy")],
+            [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
+        ])
+    )
+
+@dp.callback_query(F.data == "withdraw_info")
+async def handle_withdraw_info(callback: types.CallbackQuery):
+    text = (
+        "↗️ <b>Вывод средств:</b>\n\n"
+        "• Минимальная сумма вывода: <b>100 ⭐️</b>.\n"
+        "• Способы выплаты: <b>Telegram Stars</b>, <b>TON Wallet</b>, <b>USDT (TRC-20)</b>.\n"
+        "• Создать заявку на вывод можно в приложении по кнопке <b>«↗ Вывод»</b> в верхнем меню.\n\n"
+        "Все заявки обрабатываются автоматически или администрацией в течение 24 часов."
+    )
+    await callback.answer()
+    await callback.message.edit_text(
+        text=text,
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_menu")]
         ])
     )

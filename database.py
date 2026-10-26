@@ -280,8 +280,8 @@ async def sell_all_user_gifts(telegram_id: int) -> tuple[bool, int, int, str]:
 
 async def create_withdrawal(telegram_id: int, amount: int, address: str, method: str = "Telegram Stars") -> tuple[bool, int, str]:
     """Creates a withdrawal request, deducting stars from user balance."""
-    if amount < 50:
-        return False, 0, "Минимальная сумма вывода — 50 ⭐️"
+    if amount < 100:
+        return False, 0, "Минимальная сумма вывода — 100 ⭐️"
     
     current_balance = await get_user_balance(telegram_id)
     if current_balance < amount:
