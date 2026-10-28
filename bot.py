@@ -38,6 +38,7 @@ from database import (
     get_all_admin_chat_ids,
     is_admin,
     get_casino_stats,
+    get_user_by_identifier,
 )
 
 logger = logging.getLogger(__name__)
@@ -816,6 +817,76 @@ async def handle_admin_command(message: types.Message):
         [InlineKeyboardButton(text="◀️ В главное меню", callback_data="back_to_menu")]
     ])
     await message.answer(text, parse_mode="HTML", reply_markup=markup)
+
+@dp.message(Command("give", "addstars"))
+async def handle_give_command(message: types.Message):
+    """Admin command to grant or deduct stars from a player: /give @username 500 or /give 12345 500"""
+    user = message.from_user
+    if not await is_admin(user.id, user.username):
+        await message.answer("❌ У вас нет прав администратора.")
+        return
+
+    parts = message.text.split()
+    if len(parts) < 3:
+        await message.answer(
+            "ℹ️ <b>Выдача звёзд игроку:</b>\n\n"
+            "Формат команды:\n"
+            "<code>/give &lt;@username или ID&gt; &lt;кол-во звёзд&gt;</code>\n\n"
+            "<b>Примеры:</b>\n"
+            "• <code>/give @child_trauma 500</code>\n"
+            "• <code>/give 6200135659 1000</code>\n"
+            "• <code>/give @username -100</code> <i>(для списания)</i>",
+            parse_mode="HTML"
+        )
+        return
+
+    target_ident = parts[1]
+    try:
+        amount = int(parts[2])
+    except ValueError:
+        await message.answer("❌ Количество звёзд должно быть числом (например, 500 или 1000).")
+        return
+
+    target_user = await get_user_by_identifier(target_ident)
+    if not target_user:
+        await message.answer(
+            f"❌ Пользователь «{target_ident}» не найден в базе данных.\n"
+            f"Игрок должен хотя бы один раз запустить бота (/start), чтобы появиться в системе."
+        )
+        return
+
+    new_bal = await change_balance(
+        telegram_id=target_user["telegram_id"],
+        delta=amount,
+        tx_type="admin_grant",
+        details=f"Выдано администратором @{user.username or user.id}"
+    )
+
+    sign = "+" if amount >= 0 else ""
+    await message.answer(
+        f"✅ <b>Звёзды успешно начислены!</b>\n\n"
+        f"👤 <b>Игрок:</b> {target_user.get('first_name', 'Игрок')} (@{target_user.get('username') or target_user['telegram_id']})\n"
+        f"🔢 <b>ID:</b> <code>{target_user['telegram_id']}</code>\n"
+        f"⭐️ <b>Сумма:</b> <b>{sign}{amount} Stars</b>\n"
+        f"💰 <b>Новый баланс игрока:</b> <b>{new_bal} ⭐️</b>",
+        parse_mode="HTML"
+    )
+
+    # Notify player
+    try:
+        if amount > 0:
+            await bot.send_message(
+                chat_id=target_user["telegram_id"],
+                text=(
+                    f"🎁 <b>Вам начислен бонус от администрации!</b>\n\n"
+                    f"⭐️ Зачислено: <b>+{amount} Stars</b>\n"
+                    f"💰 Ваш баланс: <b>{new_bal} ⭐️</b>\n\n"
+                    f"Приятной игры в CosmoStars Casino! 🚀"
+                ),
+                parse_mode="HTML"
+            )
+    except Exception as e:
+        logger.warning("Could not notify player %s of stars grant: %s", target_user["telegram_id"], e)
 
 @dp.callback_query(F.data == "admin_panel_open")
 async def handle_admin_panel_callback(callback: types.CallbackQuery):

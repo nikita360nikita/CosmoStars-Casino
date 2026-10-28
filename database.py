@@ -139,6 +139,22 @@ async def get_user_balance(telegram_id: int) -> int:
     user = await get_user(telegram_id)
     return user["balance"] if user else 0
 
+async def get_user_by_identifier(identifier: str | int) -> dict | None:
+    """Finds a user either by numeric Telegram ID or @username."""
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        s = str(identifier).strip().lstrip("@")
+        if s.isdigit():
+            async with db.execute("SELECT * FROM users WHERE telegram_id = ?", (int(s),)) as cur:
+                row = await cur.fetchone()
+                if row:
+                    return dict(row)
+        async with db.execute("SELECT * FROM users WHERE LOWER(username) = LOWER(?)", (s,)) as cur:
+            row = await cur.fetchone()
+            if row:
+                return dict(row)
+    return None
+
 async def change_balance(telegram_id: int, delta: int, tx_type: str, details: str = "", charge_id: str | None = None) -> int:
     """Safely increments or decrements user balance with transaction record."""
     async with aiosqlite.connect(DB_PATH) as db:
